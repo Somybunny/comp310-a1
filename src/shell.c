@@ -26,15 +26,16 @@ int main(int argc, char *argv[]) {
     
     //init shell memory
     mem_init();
-    while(fgets(userInput, MAX_USER_INPUT - 1, stdin) != NULL) {
-	
+    while(1) {
+
 	//Check if interactrive
 	if (interactive) {
 		printf("%c ", prompt);
-		fflush(stdout);
         // here you should check the unistd library 
         // so that you can find a way to not display $ in the batch mode
 	} 
+
+	if (fgets(userInput, MAX_USER_INPUT - 1, stdin) == NULL) break;
 
         errorCode = parseInput(userInput);
         if (errorCode == -1) exit(99);	// ignore all other errors
@@ -47,7 +48,7 @@ int main(int argc, char *argv[]) {
 int wordEnding(char c) {
     // You may want to add ';' to this at some point,
     // or you may want to find a different way to implement chains.
-    return c == '\0' || c == '\n' || c == ' ';
+    return c == '\0' || c == '\n' || c == ' ' || c == ';';
 }
 
 int parseInput(char inp[]) {
@@ -57,6 +58,20 @@ int parseInput(char inp[]) {
     int errorCode;
     for (ix = 0; inp[ix] == ' ' && ix < 1000; ix++); // skip white spaces
     while (inp[ix] != '\n' && inp[ix] != '\0' && ix < 1000) {
+
+	//If semi-colon execute command
+	if (inp[ix - 1] == ';') {
+		if (w > 0) {
+			errorCode = interpreter(words, w);
+			if (errorCode == -1){
+				return errorCode;
+			}
+			w = 0;
+		}
+		ix++;
+		continue;
+	}
+
         // extract a word
         for (wordlen = 0; !wordEnding(inp[ix]) && ix < 1000; ix++, wordlen++) {
             tmp[wordlen] = inp[ix];                        
