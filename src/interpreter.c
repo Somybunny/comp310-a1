@@ -91,7 +91,8 @@ quit			Exits / terminates the shell with “Bye!”\n \
 set VAR STRING		Assigns a value to shell memory\n \
 print VAR		Displays the STRING assigned to VAR\n \
 source SCRIPT.TXT	Executes the file SCRIPT.TXT\n \
-echo STRING/VAR        Print the STRING or the VAR value\n ";
+echo STRING/VAR	Prints the STRING or the VAR value\n \
+run COMMAND ARGS	Runs an external command using fork-exec-wait\n";
     printf("%s\n", help_string);
     return 0;
 }
