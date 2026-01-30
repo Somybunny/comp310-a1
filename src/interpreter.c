@@ -83,7 +83,8 @@ help			Displays all the commands\n \
 quit			Exits / terminates the shell with “Bye!”\n \
 set VAR STRING		Assigns a value to shell memory\n \
 print VAR		Displays the STRING assigned to VAR\n \
-source SCRIPT.TXT	Executes the file SCRIPT.TXT\n ";
+source SCRIPT.TXT	Executes the file SCRIPT.TXT\n \
+echo STRING/VAR        Print the STRING or the VAR value\n ";
     printf("%s\n", help_string);
     return 0;
 }
@@ -151,7 +152,9 @@ int echo(char *input) {
 		printf("%s\n", value);
 		free(value);
 	}
-    }else
+    }else{
 	printf("%s\n", input);
+    }
+    return 0;
 }    
 
