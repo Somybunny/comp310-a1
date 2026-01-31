@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/wait.h>
 #include "shellmemory.h"
 #include "shell.h"
 
@@ -168,7 +170,40 @@ int echo(char *input) {
     return 0;
 }    
 
-int run(char *agrs[], int args_count){
+int run(char *args[], int args_count){
+    pid_t pid = fork();
 
-    return 0;
+    // if fork fails
+    if (pid < 0) {
+        perror("fork");
+	return 1;
+    }
+    
+    //Child
+    if (pid == 0) {
+
+	//Execute list with null ending
+	char *exec_args[args_count];
+        for (int i = 1; i < args_count; i++) {
+            exec_args[i - 1] = args[i];
+	}
+        exec_args[args_count - 1] = NULL;
+        execvp(exec_args[0], exec_args);
+
+	//If error
+	perror("execvp");
+	exit(1);
+
+    //Parent
+    } else {
+         int status;
+	 waitpid(pid, &status, 0);
+
+	 //Check child exit state
+	 if (WIFEXITED(status)) {
+	     return WEXITSTATUS(status);
+	 }
+	    
+	 return 1;
+    }
 }
