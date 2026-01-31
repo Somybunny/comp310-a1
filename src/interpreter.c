@@ -3,6 +3,11 @@
 #include <string.h>
 #include "shellmemory.h"
 #include "shell.h"
+#include <dirent.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <ctype.h>
+#include <ctype.h>
 
 int MAX_ARGS_SIZE = 3;
 
@@ -17,6 +22,15 @@ int badcommandFileDoesNotExist() {
     return 3;
 }
 
+int is_alphanum(char *str) {
+	for (int i = 0; str[i] != '\0'; i++) {
+		if (!isalnum(str[i])) {
+			return 2;
+		}
+	}
+	return 0; //is alphanumeric
+}
+
 int help();
 int quit();
 int set(char *var, char *value);
@@ -24,6 +38,10 @@ int print(char *var);
 int source(char *script);
 int badcommandFileDoesNotExist();
 int echo(char *input);
+int my_ls();
+int my_mkdir(char *dirname);
+int my_touch(char *filename);
+int my_cd(char *subdir);
 int run(char *args[], int args_size);
 
 // Interpret commands and their arguments
@@ -72,6 +90,26 @@ int interpreter(char *command_args[], int args_size) {
 	    return badcommand();
 	return echo(command_args[1]);
 
+    } else if (strcmp(command_args[0], "my_ls") == 0) {
+        if (args_size != 1)
+            return badcommand();
+        return my_ls();
+
+    } else if (strcmp(command_args[0], "my_mkdir") == 0) {
+        if (args_size != 2)
+            return badcommand();
+        return my_mkdir(command_args[1]);
+
+    } else if (strcmp(command_args[0], "my_touch") == 0) {
+        if (args_size != 2)
+            return badcommand();
+        return my_touch(command_args[1]);
+    
+    } else if (strcmp(command_args[0], "my_cd") == 0) {
+        if (args_size != 2)
+            return badcommand();
+        return my_cd(command_args[1]);
+
     } else if (strcmp(command_args[0], "run") == 0) {
 	//run
 	if (args_size < 3)
@@ -92,6 +130,10 @@ set VAR STRING		Assigns a value to shell memory\n \
 print VAR		Displays the STRING assigned to VAR\n \
 source SCRIPT.TXT	Executes the file SCRIPT.TXT\n \
 echo STRING/VAR	Prints the STRING or the VAR value\n \
+my_ls                  Lists all the files present in the current directory\n \
+my_mkdir STRING/VAR    Creates a new directory with the name STRING or the VAR value\n \
+my_touch STRING        Creates a new empty file inside current directory\n \
+my_cd STRING           Changes current directory to directory STRING\n \
 run COMMAND ARGS	Runs an external command using fork-exec-wait\n";
     printf("%s\n", help_string);
     return 0;
@@ -168,7 +210,94 @@ int echo(char *input) {
     return 0;
 }    
 
+int my_ls() {
+    DIR *dir;
+    struct dirent *entry;
+
+    //open current directory
+    dir = opendir(".");
+    if (dir == NULL) {
+        printf("opendir failed\n");
+        return 1;
+    }
+
+    while ((entry = readdir(dir)) != NULL) {
+        printf("%s\n", entry->d_name);
+    }
+
+    closedir(dir);
+    return 0;
+}
+
+int my_mkdir(char *dirname) {
+    if (dirname[0] == '$'){
+        char *varName = dirname + 1;
+	if (is_alphanum(varName) == 0) {
+        char *value = mem_get_value(varName);
+        if (strcmp(value, "Variable does not exist") == 0){
+            printf("Bad_command: my_mkdir\n");
+            return 1;
+        }
+        else {
+            int result = mkdir(value, 755);
+            if (result != 0) {
+                printf("Failed to create directory with var\n");
+                return 1;
+            }
+        }
+	}
+	else {
+		printf("Directory name not alphanumeric\n");
+		return 1;
+	}
+    }
+    else{
+	    if (is_alphanum(dirname) != 0) {
+		    printf("Directory name is not alphanumeric\n");
+		    return 1;
+	    }
+        int result = mkdir(dirname, 755);
+        if (result != 0) {
+            printf("Failed to create directory with var\n");
+            return 1;
+        }
+	
+    }
+    return 0;
+}
+
+int my_touch(char *filename) {
+if (is_alphanum(filename) == 0) {
+    FILE *file = fopen(filename, "a");
+    if (file == NULL) {
+        printf("Bad_command: my_touch\n");
+        return 1;
+    }
+    fclose(file);
+    return 0;
+}
+printf("Filename is not alphanumeric\n");
+return 1;
+}
+
+int my_cd(char *subdir) {
+	if (is_alphanum(subdir) == 0) {
+    if (chdir(subdir) != 0) {
+        printf("Bad_command: my_cd\n");
+        return 1;
+    }
+    return 0;
+}
+printf("Directory name is not alphanumeric\n");
+return 1;
+}
+
 int run(char *agrs[], int args_count){
 
     return 0;
 }
+
+
+
+
+
