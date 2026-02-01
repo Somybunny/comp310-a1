@@ -7,6 +7,7 @@
 #include "shell.h"
 #include <dirent.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <ctype.h>
 #include <ctype.h>
@@ -249,24 +250,23 @@ int my_ls() {
 int my_mkdir(char *dirname) {
     if (dirname[0] == '$'){
         char *varName = dirname + 1;
-
-	if (is_alphanum(varName) == 0) {
-            char *value = mem_get_value(varName);
-            if (strcmp(value, "Variable does not exist") == 0){
-                printf("Bad_command: my_mkdir\n");
-                return 1;
-            }
-            else {
-                int result = mkdir(value, 755);
+        char *value = mem_get_value(varName);
+        if (strcmp(value, "Variable does not exist") == 0){
+            printf("Bad_command: my_mkdir\n");
+            return 1;
+        }
+        else {
+	    if (is_alphanum(value) == 0) {
+                int result = mkdir(value, 0755);
                 if (result != 0) {
                     printf("Failed to create directory with var\n");
                     return 1;
                 }
-            }
-	}
-	else {
-	    printf("Bad command: my_mkdir\n");
-	    return 1;
+            } 
+	    else {
+	        printf("Bad command: my_mkdir\n");
+	        return 1;
+	    }
 	}
     }
     else {
@@ -274,7 +274,7 @@ int my_mkdir(char *dirname) {
 	    printf("Bad command: my_mkdir\n");
 	    return 1;
 	}
-        int result = mkdir(dirname, 755);
+        int result = mkdir(dirname, 0755);
         if (result != 0) {
             printf("Failed to create directory with var\n");
             return 1;
