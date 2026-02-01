@@ -25,12 +25,12 @@ int badcommandFileDoesNotExist() {
 }
 
 int is_alphanum(char *str) {
-	for (int i = 0; str[i] != '\0'; i++) {
-		if (!isalnum(str[i])) {
-			return 2;
-		}
+    for (int i = 0; str[i] != '\0'; i++) {
+	if (!isalnum(str[i])) {
+	    return 2;
 	}
-	return 0; //is alphanumeric
+    }
+    return 0; //is alphanumeric
 }
 
 int help();
@@ -93,21 +93,25 @@ int interpreter(char *command_args[], int args_size) {
 	return echo(command_args[1]);
 
     } else if (strcmp(command_args[0], "my_ls") == 0) {
+	//my_ls
         if (args_size != 1)
             return badcommand();
         return my_ls();
 
     } else if (strcmp(command_args[0], "my_mkdir") == 0) {
+	//my_mkdir    
         if (args_size != 2)
             return badcommand();
         return my_mkdir(command_args[1]);
 
     } else if (strcmp(command_args[0], "my_touch") == 0) {
+	//my_touch    
         if (args_size != 2)
             return badcommand();
         return my_touch(command_args[1]);
     
     } else if (strcmp(command_args[0], "my_cd") == 0) {
+	//my_cd    
         if (args_size != 2)
             return badcommand();
         return my_cd(command_args[1]);
@@ -212,86 +216,93 @@ int echo(char *input) {
     return 0;
 }    
 
-int my_ls() {
-    DIR *dir;
-    struct dirent *entry;
+int compare(const void* a, const void* b) {
+	return strcmp(*(const char **)a, *(const char **)b);
+}
 
-    //open current directory
-    dir = opendir(".");
+int my_ls() {
+    DIR *dir = opendir(".");
+    struct dirent *entry;
+    char *dirnames[300];
+    int count = 0;
+
     if (dir == NULL) {
         printf("opendir failed\n");
         return 1;
     }
 
     while ((entry = readdir(dir)) != NULL) {
-        printf("%s\n", entry->d_name);
+	dirnames[count++] = strdup(entry->d_name);
     }
 
     closedir(dir);
+
+    qsort(dirnames, count, sizeof(char *), compare);
+
+    for (int i = 0; i < count; i++) {
+        printf("%s\n", dirnames[i]);
+        free(dirnames[i]);
+    }
     return 0;
 }
 
 int my_mkdir(char *dirname) {
     if (dirname[0] == '$'){
         char *varName = dirname + 1;
+
 	if (is_alphanum(varName) == 0) {
-        char *value = mem_get_value(varName);
-        if (strcmp(value, "Variable does not exist") == 0){
-            printf("Bad_command: my_mkdir\n");
-            return 1;
-        }
-        else {
-            int result = mkdir(value, 755);
-            if (result != 0) {
-                printf("Failed to create directory with var\n");
+            char *value = mem_get_value(varName);
+            if (strcmp(value, "Variable does not exist") == 0){
+                printf("Bad_command: my_mkdir\n");
                 return 1;
             }
-        }
+            else {
+                int result = mkdir(value, 755);
+                if (result != 0) {
+                    printf("Failed to create directory with var\n");
+                    return 1;
+                }
+            }
 	}
 	else {
-		printf("Directory name not alphanumeric\n");
-		return 1;
+	    printf("Bad command: my_mkdir\n");
+	    return 1;
 	}
     }
-    else{
-	    if (is_alphanum(dirname) != 0) {
-		    printf("Directory name is not alphanumeric\n");
-		    return 1;
-	    }
+    else {
+	if (is_alphanum(dirname) != 0) {
+	    printf("Bad command: my_mkdir\n");
+	    return 1;
+	}
         int result = mkdir(dirname, 755);
         if (result != 0) {
             printf("Failed to create directory with var\n");
             return 1;
         }
-	
     }
     return 0;
 }
 
 int my_touch(char *filename) {
-if (is_alphanum(filename) == 0) {
-    FILE *file = fopen(filename, "a");
-    if (file == NULL) {
-        printf("Bad_command: my_touch\n");
-        return 1;
+    if (is_alphanum(filename) == 0) {
+        FILE *file = fopen(filename, "a");
+        if (file == NULL) {
+            printf("Failed to open/create file\n");
+            return 1;
+        }
+        fclose(file);
+        return 0;
     }
-    fclose(file);
-    return 0;
-}
-printf("Filename is not alphanumeric\n");
-return 1;
+    printf("Bad_command: my_touch\n");
+    return 1;
 }
 
 int my_cd(char *subdir) {
-	if (is_alphanum(subdir) == 0) {
     if (chdir(subdir) != 0) {
         printf("Bad_command: my_cd\n");
         return 1;
     }
     return 0;
-}
-printf("Directory name is not alphanumeric\n");
-return 1;
 }
 
 int run(char *args[], int args_count){
