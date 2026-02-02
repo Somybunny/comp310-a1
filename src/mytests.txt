@@ -1,8 +1,0 @@
-help
-set fiona late
-set catherine superlate
-print fiona
-print catherine
-echo imnot
-echo $fiona
-echo $yiran
