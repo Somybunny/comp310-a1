@@ -105,4 +105,9 @@ int load_script(char *filename, int *start, int *length){
 }
 
 
-void clean_up_program_memory();
+void reset_program_memory(){
+    for (int i = 0; i < program_memory_count; i++) {
+        free(program_memory[i]);
+    }
+    program_memory_count = 0;
+}
