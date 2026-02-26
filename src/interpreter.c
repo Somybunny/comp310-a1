@@ -22,6 +22,9 @@
 
 #include "shellmemory.h"
 #include "shell.h"
+#include "pcb.h"
+#include "readyqueue.h"
+#include "scheduler.h"
 
 int badcommand() {
     printf("Unknown Command\n");
@@ -55,6 +58,7 @@ int touch(char *path);
 int cd(char *path);
 int source(char *script);
 int run(char *args[], int args_size);
+int exec(char *args[], int args_size);
 int badcommandFileDoesNotExist();
 
 // Interpret commands and their arguments
@@ -137,6 +141,11 @@ int interpreter(char *command_args[], int args_size) {
         if (args_size < 2)
             return badcommand();
         return run(&command_args[1], args_size - 1);
+
+    } else if (strcmp(command_args[0], "exec") == 0) {
+        if (args_size < 3 || args_size > 5)
+            return badcommand();
+        return exec(&command_args[1], args_size - 1);
 
     } else
         return badcommand();
@@ -413,5 +422,56 @@ int run(char *args[], int arg_size) {
         waitpid(pid, NULL, 0);
     }
 
+    return 0;
+}
+
+int exec(char *args[], int args_size) {
+    char *policy = args[args_size - 1];
+    if (strcmp(policy, "FCFS") != 0 && strcmp(policy, "SJF") != 0 && strcmp(policy, "RR") != 0 && strcmp(policy, "AGING") != 0) {
+        printf("Invalid policy\n");
+        return 1;
+    }
+
+    int nb_programs = args_size -1;
+
+    // Check for duplicate programs
+    for (int i = 0; i < nb_programs; i++) {
+        for (int j = i + 1; j < nb_programs; j++) {
+	    if (strcmp(args[i], args[j]) == 0) {
+	        printf("Invalid programs: duplicate program names\n");
+		return 1;
+	    }
+	}
+    }
+
+    PCB *pcbs[3]; //max 3 programs
+	
+    int startPCB;
+    int length;
+
+    for (int i = 0; i < nb_programs; i++) {
+        int start = load_script(args[i], &startPCB, &length);
+	if (start == -1) {
+	    printf("Error: Could not load program %s\n", args[i]);
+
+	    // Cleanup loaded things
+	    reset_program_memory();
+	    return 1;
+	}
+	pcbs[i] = create_PCB(startPCB, length);
+    }
+
+    // Make sure ready queue starts empty
+    rq_init();
+
+    // Non-preemptive policies loop
+     for (int i = 0; i < nb_programs; i++) {
+        enqueue(pcbs[i]);
+    }
+
+    // Preemptive policies loop
+
+
+    scheduler_run();
     return 0;
 }
