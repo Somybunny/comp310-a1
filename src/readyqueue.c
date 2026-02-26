@@ -37,6 +37,13 @@ int rq_is_empty() {
 }
 
 void rq_clear() {
+    PCB *curr = head;
+    while (curr != NULL) {
+        PCB *next = curr->next;
+     	destroy_pcd(curr);
+        curr = next;
+    }
+
     head = NULL;
     tail = NULL;
 }
