@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include "shellmemory.h"
 
+char *program_memory[MAX_PROGRAM_LINES];
+int program_memory_count = 0;
+
 struct memory_struct {
     char *var;
     char *value;
@@ -67,3 +70,39 @@ char *mem_get_value(char *var_in) {
     }
     return NULL;
 }
+
+
+int load_script(char *filename, int *start, int *length){
+    FILE *fp = fopen(filename, "rt");
+    
+    // File not found
+    if (fp == NULL) {
+        return -1;
+    }
+
+    *start = program_memory_count;
+    *length = 0;
+
+    // Set limit
+    char line[101];
+
+    while (fgets(line, sizeof(line), fp)) {
+	
+	// Memory full
+        if (program_memory_count >= MAX_PROGRAM_LINES) {
+            fclose(fp);
+            return -1;
+        }
+	
+	// Put program and update pointers
+        program_memory[program_memory_count] = strdup(line);
+        program_memory_count++;
+        (*length)++;
+    }
+
+    fclose(fp);
+    return 0;
+}
+
+
+void clean_up_program_memory();
