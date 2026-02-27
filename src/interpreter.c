@@ -478,26 +478,29 @@ int exec(char *args[], int args_size) {
 	pcbs[i] = create_pcb(startPCB, length);
     }
 
+    if(!scheduler_is_running()){
+        rq_init();
+    }
+
     PCB *batch_pcb = NULL;
     if (bg) {
         int batch_start, batch_length;
         load_batch_script(&batch_start, &batch_length);
 	batch_pcb = create_pcb(batch_start, batch_length);
+	enqueue(batch_pcb);
     }
-
-    // Make sure ready queue starts empty
-    rq_init();
 
     // Sort by length for SJF
     if (strcmp(policy, "SJF") == 0 || strcmp(policy, "AGING") == 0) {
         sort(pcbs, nb_programs);
     }
 
-    // Enqueue batch script first if background
-    if (bg) {
-        enqueue(batch_pcb);
+    if (scheduler_is_running() && (strcmp(policy, "SJF") == 0 || strcmp(policy, "AGING") == 0)){
+	for (int i = 0; i < nb_programs; i++) {
+	    enqueue_length(pcbs[i]);
+	}
     }
-    
+
     // Enqueue
     for (int i = 0; i < nb_programs; i++) {
         enqueue(pcbs[i]);

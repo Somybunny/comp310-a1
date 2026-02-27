@@ -8,7 +8,7 @@
 #include <pthread.h>
 
 #define NUM_WORKERS 2
-
+int scheduler_running = 0;
 pthread_t workers[NUM_WORKERS];
 int mt_enabled = 0;
 int rr_slice = 2; // will store 2 (RR) or 30 (RR30)
@@ -17,7 +17,13 @@ pthread_mutex_t rq_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t rq_cond = PTHREAD_COND_INITIALIZER;
 
 
+int scheduler_is_running(){
+	return scheduler_running;
+}
+
+
 int scheduler_run() {
+    scheduler_running = 1;
     int errCode = 0;
     while (!rq_is_empty()) {
 
@@ -35,10 +41,12 @@ int scheduler_run() {
 
     // Clean memory
     reset_program_memory();
+    scheduler_running = 0;
     return errCode;
 }
 
 int scheduler_run_RR(int nb_instructions) {
+    scheduler_running = 1;
     int errCode = 0;
 
     while (!rq_is_empty()) {
@@ -61,11 +69,13 @@ int scheduler_run_RR(int nb_instructions) {
     }
 
     reset_program_memory();
+    scheduler_running = 0;
     return errCode;
 }
 
 
 int scheduler_run_aging(){
+    scheduler_running = 1;
     int errCode = 0;
     while (!rq_is_empty()) {
         PCB *p = dequeue();
@@ -81,7 +91,7 @@ int scheduler_run_aging(){
 
         // Re-insert program
         if (p->current < p->length) {
-            enqueue_aging(p);
+            enqueue_length(p);
         } else {
             destroy_pcb(p);
         }
@@ -89,6 +99,7 @@ int scheduler_run_aging(){
 
     // Clean memory
     reset_program_memory();
+    scheduler_running = 0;
     return errCode;
 }
 

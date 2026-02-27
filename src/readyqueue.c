@@ -62,7 +62,7 @@ void rq_clear() {
 }
 
 
-void enqueue_aging(PCB *pcb) {
+void enqueue_length(PCB *pcb) {
     pcb->next = NULL;
 
     // Check if empty
@@ -93,7 +93,7 @@ void enqueue_aging(PCB *pcb) {
     }
 }
 
-// Helper for aging
+// Helper for aging 
 void age_queue() {
     PCB *curr = head;
     while (curr) {
