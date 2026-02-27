@@ -1,6 +1,6 @@
 #ifndef SCHEDULER_H
 #define SCHEDULER_H
 
-void scheduler_run();
+int scheduler_run();
 
 #endif
