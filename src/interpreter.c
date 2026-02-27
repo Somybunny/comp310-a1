@@ -464,14 +464,33 @@ int exec(char *args[], int args_size) {
     // Make sure ready queue starts empty
     rq_init();
 
-    // Non-preemptive policies loop
-     for (int i = 0; i < nb_programs; i++) {
+    // Sort by length for SJF
+    if (strcmp(policy, "SJF") == 0) {
+        sort(pcbs, nb_programs);
+    }
+    
+    // Enqueue
+    for (int i = 0; i < nb_programs; i++) {
         enqueue(pcbs[i]);
     }
 
-    // Preemptive policies loop
-
-
-    scheduler_run();
+    if (strcmp(policy, "FCFS") == 0 || strcmp(policy, "SJF") == 0) {
+        scheduler_run();
+    }
+    else {
+        scheduler_run_RR();
+    }
     return 0;
+}
+
+void sort(PCB *pcbs[], int nb) {
+    for (int i = 0; i < nb - 1; i++) {
+        for (int j = 0; j < nb - i - 1; j++) {
+            if (pcbs[j]->job_length_score > pcbs[j + 1]->job_length_score) {
+ 	        PCB *temp = pcbs[j];
+		pcbs[j] = pcbs[j+1];
+		pcbs[j+1] = temp;
+            }
+        } 
+    }
 }
