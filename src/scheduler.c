@@ -12,6 +12,7 @@ int scheduler_running = 0;
 pthread_t workers[NUM_WORKERS];
 int mt_enabled = 0;
 int rr_slice = 2; // will store 2 (RR) or 30 (RR30)
+int active_workers = 0;
 
 pthread_mutex_t rq_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t rq_cond = PTHREAD_COND_INITIALIZER;
@@ -109,7 +110,8 @@ void *worker_rr(void *arg) {
         pthread_mutex_lock(&rq_mutex);
 
         while (rq_is_empty()) {
-            if (!mt_enabled) {
+            if (!mt_enabled && active_workers == 0) {
+		    pthread_cond_broadcast(&rq_cond);
                 pthread_mutex_unlock(&rq_mutex);
                 pthread_exit(NULL);
             }
@@ -117,6 +119,7 @@ void *worker_rr(void *arg) {
         }
 
         PCB *p = dequeue();
+	active_workers++;
         pthread_mutex_unlock(&rq_mutex);
 
         int count = 0;
@@ -127,21 +130,32 @@ void *worker_rr(void *arg) {
             count++;
         }
 
+	pthread_mutex_lock(&rq_mutex);
+        active_workers--;
         if (p->current < p->length) {
-            pthread_mutex_lock(&rq_mutex);
             enqueue(p);
-            pthread_cond_signal(&rq_cond);
-            pthread_mutex_unlock(&rq_mutex);
         } else {
             destroy_pcb(p);
         }
+	pthread_cond_broadcast(&rq_cond);
+        pthread_mutex_unlock(&rq_mutex);
     }
     return NULL;
 }
 
 void scheduler_start_mt(int slice) {
+    if (mt_enabled) {
+        // Recursive exec while MT already running:
+        // PCBs already enqueued by exec(), just wake workers
+        pthread_mutex_lock(&rq_mutex);
+        pthread_cond_broadcast(&rq_cond);
+        pthread_mutex_unlock(&rq_mutex);
+        return;
+    }
+
     rr_slice = slice;
     mt_enabled = 1;
+    active_workers = 0;
 
     for (int i = 0; i < NUM_WORKERS; i++) {
         pthread_create(&workers[i], NULL, worker_rr, NULL);
@@ -149,13 +163,27 @@ void scheduler_start_mt(int slice) {
 }
 
 void scheduler_stop_mt() {
-    mt_enabled = 0;
-
+    if (!mt_enabled){
+	    return;
+    }
+   
     pthread_mutex_lock(&rq_mutex);
+
+    while (!rq_is_empty() || active_workers > 0) {
+        pthread_cond_wait(&rq_cond, &rq_mutex);
+    }
+
+    mt_enabled = 0;
     pthread_cond_broadcast(&rq_cond);
     pthread_mutex_unlock(&rq_mutex);
 
     for (int i = 0; i < NUM_WORKERS; i++) {
         pthread_join(workers[i], NULL);
     }
+
+    reset_program_memory();
+}
+
+int scheduler_is_mt_running() {
+    return mt_enabled;
 }

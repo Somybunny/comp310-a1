@@ -478,7 +478,7 @@ int exec(char *args[], int args_size) {
 	pcbs[i] = create_pcb(startPCB, length);
     }
 
-    if(!scheduler_is_running()){
+    if(!scheduler_is_running() && !scheduler_is_mt_running()){
         rq_init();
     }
 
