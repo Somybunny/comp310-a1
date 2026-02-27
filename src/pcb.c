@@ -8,7 +8,7 @@ PCB* create_pcb(int start, int length) {
     pcb->pid = next_pid++;
     pcb->start = start;
     pcb->length = length;
-    pcb->pc = 0;
+    pcb->current = 0;
     pcb->job_length_score = length;
     pcb->next = NULL;
     return pcb;
