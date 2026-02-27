@@ -5,8 +5,8 @@ typedef struct PCB {
     int pid;
     int start;
     int length;
-    int pc;
-    int job_length_score;   // for SJF / AGING later
+    int current;
+    int job_length_score;   
     struct PCB *next;
 } PCB;
 
