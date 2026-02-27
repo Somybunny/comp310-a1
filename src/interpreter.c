@@ -143,7 +143,7 @@ int interpreter(char *command_args[], int args_size) {
         return run(&command_args[1], args_size - 1);
 
     } else if (strcmp(command_args[0], "exec") == 0) {
-        if (args_size < 3 || args_size > 5)
+        if (args_size < 3 || args_size > 6)
             return badcommand();
         return exec(&command_args[1], args_size - 1);
 
@@ -367,7 +367,7 @@ int source(char *script) {
     int errCode = 0;
     int start, length;
 
-    if (load_script(filename, &start, &length) == -1){
+    if (load_script(script, &start, &length) == -1){
         return badcommandFileDoesNotExist();
     }
 
@@ -414,9 +414,29 @@ int run(char *args[], int arg_size) {
     return 0;
 }
 
+void sort(PCB *pcbs[], int nb) {
+    for (int i = 0; i < nb - 1; i++) {
+        for (int j = 0; j < nb - i - 1; j++) {
+            if (pcbs[j]->job_length_score > pcbs[j + 1]->job_length_score) {
+ 	        PCB *temp = pcbs[j];
+		pcbs[j] = pcbs[j+1];
+		pcbs[j+1] = temp;
+            }
+        } 
+    }
+}
+
 int exec(char *args[], int args_size) {
+    int bg = 0;
+
+    // Check if background mode
+    if (args_size >= 2 && strcmp(args[args_size - 1], "#") == 0) {
+        bg = 1;
+	args_size--; // ignore '#' during parsing
+    }
+
     char *policy = args[args_size - 1];
-    if (strcmp(policy, "FCFS") != 0 && strcmp(policy, "SJF") != 0 && strcmp(policy, "RR") != 0 && strcmp(policy, "AGING") != 0) {
+    if (strcmp(policy, "FCFS") != 0 && strcmp(policy, "SJF") != 0 && strcmp(policy, "RR") != 0 && strcmp(policy, "RR30") != 0 & & strcmp(policy, "AGING") != 0) {
         printf("Invalid policy\n");
         return 1;
     }
@@ -447,7 +467,14 @@ int exec(char *args[], int args_size) {
 	    reset_program_memory();
 	    return 1;
 	}
-	pcbs[i] = create_PCB(startPCB, length);
+	pcbs[i] = create_pcb(startPCB, length);
+    }
+
+    PCB *batch_pcb = NULL;
+    if (bg) {
+        int batch_start, batch_length;
+        load_batch_script(&batch_start, &batch_length);
+	batch_pcb = create_PCB(batch_start, batch_length);
     }
 
     // Make sure ready queue starts empty
@@ -457,12 +484,18 @@ int exec(char *args[], int args_size) {
     if (strcmp(policy, "SJF") == 0 || strcmp(policy, "AGING") == 0) {
         sort(pcbs, nb_programs);
     }
+
+    // Enqueue batch script first if background
+    if (bg) {
+        enqueue(batch_pcb);
+    }
     
     // Enqueue
     for (int i = 0; i < nb_programs; i++) {
         enqueue(pcbs[i]);
     }
 
+    // Run scheduler
     if (strcmp(policy, "FCFS") == 0 || strcmp(policy, "SJF") == 0) {
         scheduler_run();
     } 
@@ -470,19 +503,11 @@ int exec(char *args[], int args_size) {
         scheduler_run_aging();
     } 
     else if (strcmp(policy, "RR") == 0) {
-        scheduler_run_RR();
+        scheduler_run_RR(2);
+    }
+    else if (strcmp(policy, "RR30") == 0) {
+        scheduler_run_RR(30);
     }
     return 0;
 }
 
-void sort(PCB *pcbs[], int nb) {
-    for (int i = 0; i < nb - 1; i++) {
-        for (int j = 0; j < nb - i - 1; j++) {
-            if (pcbs[j]->job_length_score > pcbs[j + 1]->job_length_score) {
- 	        PCB *temp = pcbs[j];
-		pcbs[j] = pcbs[j+1];
-		pcbs[j+1] = temp;
-            }
-        } 
-    }
-}

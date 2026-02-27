@@ -24,7 +24,7 @@ int scheduler_run() {
     return errCode;
 }
 
-int scheduler_run_RR() {
+int scheduler_run_RR(int nb_instructions) {
     int errCode = 0;
 
     while (!rq_is_empty()) {
@@ -32,7 +32,7 @@ int scheduler_run_RR() {
 	PCB *p = dequeue();
         count = 0;
 
-	while (count < 2 && p->current < p->length) {
+	while (count < nb_instructions && p->current < p->length) {
 	    char *instruction = get_program_line(p->start + p->current);
             errCode = parseInput(instruction);
 	    p->current++;

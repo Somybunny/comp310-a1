@@ -104,6 +104,27 @@ int load_script(char *filename, int *start, int *length){
     return 0;
 }
 
+int load_batch_script(int *start, int *length){
+    char line[101];    
+
+    *start = program_memory_count;
+    *length = 0;
+
+    while (fgets(line, sizeof(line), stdin)) {
+	
+	// Memory full
+        if (program_memory_count >= MAX_PROGRAM_LINES) {
+            return -1;
+        }
+	
+	// Put program and update pointers
+        program_memory[program_memory_count] = strdup(line);
+        program_memory_count++;
+        (*length)++;
+    }   
+
+    return 0;
+}
 
 void reset_program_memory(){
     for (int i = 0; i < program_memory_count; i++) {
