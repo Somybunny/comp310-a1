@@ -24,6 +24,32 @@ int scheduler_run() {
     return errCode;
 }
 
+int scheduler_run_RR() {
+    int errCode = 0;
+
+    while (!rq_is_empty()) {
+
+	PCB *p = dequeue();
+        count = 0;
+
+	while (count < 2 && p->current < p->length) {
+	    char *instruction = get_program_line(p->start + p->current);
+            errCode = parseInput(instruction);
+	    p->current++;
+	    count++;
+	}
+
+	if (p->current < p->length) {
+            enqueue(p);
+	} else {
+	    destroy_pcb(p);
+	}
+    }
+
+    reset_program_memory();
+    return errCode;
+}
+
 void age_queue() {
     PCB *curr = head;
     while (curr) {
@@ -57,6 +83,7 @@ int scheduler_run_aging(){
         }
     }
 
+    reset_program_memory();
     return errCode;
 }
 
