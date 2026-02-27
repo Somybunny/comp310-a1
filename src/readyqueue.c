@@ -3,38 +3,50 @@
 static PCB *head = NULL;
 static PCB *tail = NULL;
 
+
 void rq_init() {
     head = NULL;
     tail = NULL;
 }
 
+
 void enqueue(PCB *pcb) {
     pcb->next = NULL;
 
+    // If list empty
     if (tail == NULL) {
         head = pcb;
         tail = pcb;
-    } else {
+    } 
+    else {
         tail->next = pcb;
         tail = pcb;
     }
 }
 
+
 PCB* dequeue() {
-    if (head == NULL) return NULL;
+    // Check if empty
+    if (head == NULL) { 
+        return NULL;
+    }
 
     PCB *temp = head;
     head = head->next;
 
-    if (head == NULL)
+    // Check if empty after dequeue
+    if (head == NULL) {
         tail = NULL;
+    }
 
     return temp;
 }
 
+
 int rq_is_empty() {
     return head == NULL;
 }
+
 
 void rq_clear() {
     PCB *curr = head;
@@ -48,14 +60,17 @@ void rq_clear() {
     tail = NULL;
 }
 
+
 void enqueue_aging(PCB *pcb) {
     pcb->next = NULL;
 
+    // Check if empty
     if (head == NULL) {
         head = tail = pcb;
         return;
     }
 
+    // Sort placement
     PCB *curr = head;
     PCB *prev = NULL;
     while (curr && curr->job_length_score < pcb->job_length_score) {
@@ -63,9 +78,16 @@ void enqueue_aging(PCB *pcb) {
         curr = curr->next;
     }
 
+    // Update placement
     pcb->next = curr;
-    if (prev) prev->next = pcb;
-    else head = pcb;
+    if (prev != NULL) {
+        prev->next = pcb;
+    }
+    else {
+        head = pcb;
+    }
 
-    if (!curr) tail = pcb;
+    if (curr == NULL) {
+	    tail = pcb;
+    }
 }

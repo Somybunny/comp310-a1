@@ -83,9 +83,7 @@ int load_script(char *filename, int *start, int *length){
     *start = program_memory_count;
     *length = 0;
 
-    // Set limit
     char line[101];
-
     while (fgets(line, sizeof(line), fp)) {
 	
 	// Memory full
@@ -132,6 +130,7 @@ void reset_program_memory(){
     }
     program_memory_count = 0;
 }
+
 
 char *get_program_line(int index) {
     return program_memory[index];
