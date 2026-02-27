@@ -68,7 +68,6 @@ void age_queue() {
 
 
 int scheduler_run_aging(){
-
     while (!rq_is_empty()) {
         PCB *p = dequeue();
 
