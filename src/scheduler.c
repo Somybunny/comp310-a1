@@ -33,7 +33,7 @@ int scheduler_run_RR(int nb_instructions) {
     while (!rq_is_empty()) {
 
 	PCB *p = dequeue();
-        count = 0;
+        int count = 0;
 
 	while (count < nb_instructions && p->current < p->length) {
 	    char *instruction = get_program_line(p->start + p->current);
@@ -54,19 +54,8 @@ int scheduler_run_RR(int nb_instructions) {
 }
 
 
-// Helper for aging
-void age_queue() {
-    PCB *curr = head;
-    while (curr) {
-        if (curr->job_length_score > 0) {
-            curr->job_length_score--;
-        }
-        curr = curr->next;
-    }
-}
-
-
 int scheduler_run_aging(){
+    int errCode = 0;
     while (!rq_is_empty()) {
         PCB *p = dequeue();
 

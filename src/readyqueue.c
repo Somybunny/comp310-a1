@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include "readyqueue.h"
 
 static PCB *head = NULL;
@@ -52,7 +53,7 @@ void rq_clear() {
     PCB *curr = head;
     while (curr != NULL) {
         PCB *next = curr->next;
-     	destroy_pcd(curr);
+     	destroy_pcb(curr);
         curr = next;
     }
 
@@ -91,3 +92,15 @@ void enqueue_aging(PCB *pcb) {
 	    tail = pcb;
     }
 }
+
+// Helper for aging
+void age_queue() {
+    PCB *curr = head;
+    while (curr) {
+        if (curr->job_length_score > 0) {
+            curr->job_length_score--;
+        }
+        curr = curr->next;
+    }
+}
+

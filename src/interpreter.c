@@ -436,7 +436,7 @@ int exec(char *args[], int args_size) {
     }
 
     char *policy = args[args_size - 1];
-    if (strcmp(policy, "FCFS") != 0 && strcmp(policy, "SJF") != 0 && strcmp(policy, "RR") != 0 && strcmp(policy, "RR30") != 0 & & strcmp(policy, "AGING") != 0) {
+    if (strcmp(policy, "FCFS") != 0 && strcmp(policy, "SJF") != 0 && strcmp(policy, "RR") != 0 && strcmp(policy, "RR30") != 0 && strcmp(policy, "AGING") != 0) {
         printf("Invalid policy\n");
         return 1;
     }
@@ -474,7 +474,7 @@ int exec(char *args[], int args_size) {
     if (bg) {
         int batch_start, batch_length;
         load_batch_script(&batch_start, &batch_length);
-	batch_pcb = create_PCB(batch_start, batch_length);
+	batch_pcb = create_pcb(batch_start, batch_length);
     }
 
     // Make sure ready queue starts empty

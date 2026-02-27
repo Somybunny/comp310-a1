@@ -9,5 +9,6 @@ PCB* dequeue();
 int rq_is_empty();
 void rq_clear();
 void enqueue_aging(PCB *pcb);
+void age_queue();
 
 #endif
