@@ -7,6 +7,7 @@ void mem_init();
 char *mem_get_value(char *var);
 void mem_set_value(char *var, char *value);
 int load_script(char *filename, int *start, int *length);
+int load_batch_script(int *start, int *length);
 void reset_program_memory();
 char *get_program_line(int index);
 
