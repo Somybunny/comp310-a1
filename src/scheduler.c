@@ -13,11 +13,7 @@ int scheduler_run() {
 
         while (p->current < p->length) {
             char *instruction = get_program_line(p->start + p->current);
-<<<<<<< HEAD
-            interpret(instruction);
-=======
             errCode = parseInput(instruction);
->>>>>>> yiran
             p->current++;
         }
 
