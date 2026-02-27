@@ -10,5 +10,7 @@ int load_script(char *filename, int *start, int *length);
 int load_batch_script(int *start, int *length);
 void reset_program_memory();
 char *get_program_line(int index);
+void scheduler_start_mt(int slice);
+void scheduler_stop_mt();
 
 #endif

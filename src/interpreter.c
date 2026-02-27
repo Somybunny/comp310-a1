@@ -165,6 +165,7 @@ source SCRIPT.TXT		Executes the file SCRIPT.TXT\n ";
 }
 
 int quit() {
+    scheduler_stop_mt();
     printf("Bye!\n");
     exit(0);
 }
@@ -428,11 +429,18 @@ void sort(PCB *pcbs[], int nb) {
 
 int exec(char *args[], int args_size) {
     int bg = 0;
+    int mt = 0;
 
     // Check if background mode
     if (args_size >= 2 && strcmp(args[args_size - 1], "#") == 0) {
         bg = 1;
 	args_size--; // ignore '#' during parsing
+    }
+
+    // Check if MT mode
+    if (args_size >= 2 && strcmp(args[args_size - 1], "MT") == 0) {
+        mt = 1;
+        args_size--;
     }
 
     char *policy = args[args_size - 1];
@@ -496,6 +504,13 @@ int exec(char *args[], int args_size) {
     }
 
     // Run scheduler
+    if (mt && (strcmp(policy, "RR") == 0 || strcmp(policy, "RR30") == 0)) {
+
+    int slice = (strcmp(policy, "RR30") == 0) ? 30 : 2;
+
+    scheduler_start_mt(slice);
+}
+else {
     if (strcmp(policy, "FCFS") == 0 || strcmp(policy, "SJF") == 0) {
         scheduler_run();
     } 
@@ -508,6 +523,7 @@ int exec(char *args[], int args_size) {
     else if (strcmp(policy, "RR30") == 0) {
         scheduler_run_RR(30);
     }
+}
     return 0;
 }
 
