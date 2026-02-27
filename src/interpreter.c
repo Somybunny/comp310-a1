@@ -143,7 +143,7 @@ int interpreter(char *command_args[], int args_size) {
         return run(&command_args[1], args_size - 1);
 
     } else if (strcmp(command_args[0], "exec") == 0) {
-        if (args_size < 3 || args_size > 6)
+        if (args_size < 3 || args_size > 7)
             return badcommand();
         return exec(&command_args[1], args_size - 1);
 
@@ -430,17 +430,17 @@ void sort(PCB *pcbs[], int nb) {
 int exec(char *args[], int args_size) {
     int bg = 0;
     int mt = 0;
+    
+    // Check if MT mode
+    if (args_size >= 2 && strcmp(args[args_size - 1], "MT") == 0) {
+        mt = 1;
+        args_size--;
+    }
 
     // Check if background mode
     if (args_size >= 2 && strcmp(args[args_size - 1], "#") == 0) {
         bg = 1;
 	args_size--; // ignore '#' during parsing
-    }
-
-    // Check if MT mode
-    if (args_size >= 2 && strcmp(args[args_size - 1], "MT") == 0) {
-        mt = 1;
-        args_size--;
     }
 
     char *policy = args[args_size - 1];
