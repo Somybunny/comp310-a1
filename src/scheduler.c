@@ -5,12 +5,14 @@
 #include "pcb.h"
 #include "interpreter.h"
 
+
 int scheduler_run() {
     int errCode = 0;
     while (!rq_is_empty()) {
 
         PCB *p = dequeue();
-
+        
+	// Run all instructions
         while (p->current < p->length) {
             char *instruction = get_program_line(p->start + p->current);
             errCode = parseInput(instruction);
@@ -20,9 +22,11 @@ int scheduler_run() {
         destroy_pcb(p);
     }
 
+    // Clean memory
     reset_program_memory();
     return errCode;
 }
+
 
 int scheduler_run_RR() {
     int errCode = 0;
@@ -50,6 +54,8 @@ int scheduler_run_RR() {
     return errCode;
 }
 
+
+// Helper for aging
 void age_queue() {
     PCB *curr = head;
     while (curr) {
@@ -59,6 +65,7 @@ void age_queue() {
         curr = curr->next;
     }
 }
+
 
 int scheduler_run_aging(){
 
@@ -72,10 +79,9 @@ int scheduler_run_aging(){
             p->current++;
         }
 
-        // Age other jobs in the ready queue
         age_queue();
 
-        // Re-insert the current job back into the queue if not finished
+        // Re-insert program
         if (p->current < p->length) {
             enqueue_aging(p);
         } else {
@@ -83,6 +89,7 @@ int scheduler_run_aging(){
         }
     }
 
+    // Clean memory
     reset_program_memory();
     return errCode;
 }
