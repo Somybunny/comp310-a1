@@ -365,26 +365,15 @@ int cd(char *path) {
 
 int source(char *script) {
     int errCode = 0;
-    char line[MAX_USER_INPUT];
-    FILE *p = fopen(script, "rt");      // the program is in a file
+    int start, length;
 
-    if (p == NULL) {
+    if (load_script(filename, &start, &length) == -1){
         return badcommandFileDoesNotExist();
     }
 
-    fgets(line, MAX_USER_INPUT - 1, p);
-    while (1) {
-        errCode = parseInput(line);     // which calls interpreter()
-        memset(line, 0, sizeof(line));
-
-        if (feof(p)) {
-            break;
-        }
-        fgets(line, MAX_USER_INPUT - 1, p);
-    }
-
-    fclose(p);
-
+    PCB *pcb = create_pcb(start, length);
+    enqueue(pcb);
+    errCode = scheduler_run();
     return errCode;
 }
 

@@ -47,3 +47,25 @@ void rq_clear() {
     head = NULL;
     tail = NULL;
 }
+
+void enqueue_aging(PCB *pcb) {
+    pcb->next = NULL;
+
+    if (head == NULL) {
+        head = tail = pcb;
+        return;
+    }
+
+    PCB *curr = head;
+    PCB *prev = NULL;
+    while (curr && curr->job_length_score < pcb->job_length_score) {
+        prev = curr;
+        curr = curr->next;
+    }
+
+    pcb->next = curr;
+    if (prev) prev->next = pcb;
+    else head = pcb;
+
+    if (!curr) tail = pcb;
+}
