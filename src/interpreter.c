@@ -466,7 +466,7 @@ int exec(char *args[], int args_size) {
     if (strcmp(policy, "FCFS") == 0 || strcmp(policy, "SJF") == 0) {
         scheduler_run();
     }
-    else if(strcmp(policy, "AGING") == 0){\
+    else if(strcmp(policy, "AGING") == 0){
         scheduler_run_aging();
     }
     else {
