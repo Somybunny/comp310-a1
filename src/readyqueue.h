@@ -8,5 +8,6 @@ void enqueue(PCB *pcb);
 PCB* dequeue();
 int rq_is_empty();
 void rq_clear();
+void enqueue_aging(PCB *pcb);
 
 #endif
