@@ -1,18 +1,19 @@
 #include "scheduler.h"
 #include "readyqueue.h"
 #include "shellmemory.h"
+#include "shell.h"
 #include "pcb.h"
 #include "interpreter.h"
 
-void scheduler_run() {
-
+int scheduler_run() {
+    int errCode = 0;
     while (!rq_is_empty()) {
 
         PCB *p = dequeue();
 
         while (p->current < p->length) {
             char *instruction = get_program_line(p->start + p->current);
-            interpret(instruction);
+            errCode = parseInput(instruction);
             p->current++;
         }
 
@@ -20,4 +21,5 @@ void scheduler_run() {
     }
 
     reset_program_memory();
+    return errCode;
 }
