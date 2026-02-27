@@ -454,7 +454,7 @@ int exec(char *args[], int args_size) {
     rq_init();
 
     // Sort by length for SJF
-    if (strcmp(policy, "SJF") == 0) {
+    if (strcmp(policy, "SJF") == 0 || strcmp(policy, "AGING") == 0) {
         sort(pcbs, nb_programs);
     }
     
@@ -465,6 +465,9 @@ int exec(char *args[], int args_size) {
 
     if (strcmp(policy, "FCFS") == 0 || strcmp(policy, "SJF") == 0) {
         scheduler_run();
+    }
+    else if(strcmp(policy, "AGING") == 0){\
+        scheduler_run_aging();
     }
     else {
         scheduler_run_RR();
