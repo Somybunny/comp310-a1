@@ -8,19 +8,15 @@ void scheduler_run() {
 
     while (!rq_is_empty()) {
 
-        PCB *current = dequeue();
+        PCB *p = dequeue();
 
-        while (current->pc < current->length) {
-
-            char *instruction =
-                get_program_line(current->start + current->pc);
-
+        while (p->current < p->length) {
+            char *instruction = get_program_line(p->start + p->current);
             interpret(instruction);
-
-            current->pc++;
+            p->current++;
         }
 
-        destroy_pcb(current);
+        destroy_pcb(p);
     }
 
     reset_program_memory();

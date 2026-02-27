@@ -111,3 +111,7 @@ void reset_program_memory(){
     }
     program_memory_count = 0;
 }
+
+char *get_program_line(int index) {
+    return program_memory[index];
+}
