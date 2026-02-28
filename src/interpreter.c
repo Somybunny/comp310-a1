@@ -154,12 +154,22 @@ int interpreter(char *command_args[], int args_size) {
 int help() {
 
     // note the literal tab characters here for alignment
-    char help_string[] = "COMMAND			DESCRIPTION\n \
-help			Displays all the commands\n \
-quit			Exits / terminates the shell with “Bye!”\n \
-set VAR STRING		Assigns a value to shell memory\n \
-print VAR		Displays the STRING assigned to VAR\n \
-source SCRIPT.TXT		Executes the file SCRIPT.TXT\n ";
+    char help_string[] = "COMMAND						 DESCRIPTION\n \
+help						 Displays all the commands\n \
+quit						 Exits / terminates the shell with “Bye!”\n \
+set VAR STRING					 Assigns a value to shell memory\n \
+print VAR					 Displays the STRING assigned to VAR\n \
+source SCRIPT.TXT				 Executes the file SCRIPT.TXT\n \
+echo STRING/VAR 				 Prints the STRING or the VAR value\n \
+my_ls                  			 Lists all the files present in the current directory\n \
+my_mkdir STRING/VAR    			 Creates a new directory with the name STRING or the VAR value\n \
+my_touch STRING        			 Creates a new empty file inside current directory\n \
+my_cd STRING           			 Changes current directory to directory STRING\n \
+run COMMAND ARGS        			 Runs an external command using fork-exec-wait\n \
+exec PROG1 [PROG2] [PROG3] POLICY [#] [MT]	 Executes up to 3 concurrent programs according to given scheduling policy \n \
+						 Possible policies: FCFS, SJF, AGING, RR, RR30 \n \
+						 #: Enables execution in the backgound \n \
+						 MT: Enables multi-threaded scheduling \n";
     printf("%s\n", help_string);
     return 0;
 }
@@ -415,6 +425,7 @@ int run(char *args[], int arg_size) {
     return 0;
 }
 
+// Helper to sort for SJF, bubble sort since not many programs
 void sort(PCB *pcbs[], int nb) {
     for (int i = 0; i < nb - 1; i++) {
         for (int j = 0; j < nb - i - 1; j++) {
@@ -466,6 +477,7 @@ int exec(char *args[], int args_size) {
     int startPCB;
     int length;
 
+    // Create pcbs for each program
     for (int i = 0; i < nb_programs; i++) {
         int start = load_script(args[i], &startPCB, &length);
 	if (start == -1) {
@@ -482,6 +494,7 @@ int exec(char *args[], int args_size) {
         rq_init();
     }
 
+    // Handle background mode
     PCB *batch_pcb = NULL;
     if (bg) {
         int batch_start, batch_length;
@@ -490,7 +503,7 @@ int exec(char *args[], int args_size) {
 	enqueue(batch_pcb);
     }
 
-    // Sort by length for SJF
+    // Sort by length for SJF/AGING
     if (strcmp(policy, "SJF") == 0 || strcmp(policy, "AGING") == 0) {
         sort(pcbs, nb_programs);
     }
@@ -506,15 +519,12 @@ int exec(char *args[], int args_size) {
         enqueue(pcbs[i]);
     }
 
-    // Run scheduler
+    // Run scheduler depending on policy
     if (mt && (strcmp(policy, "RR") == 0 || strcmp(policy, "RR30") == 0)) {
-
-    int slice = (strcmp(policy, "RR30") == 0) ? 30 : 2;
-
-    scheduler_start_mt(slice);
-}
-else {
-    if (strcmp(policy, "FCFS") == 0 || strcmp(policy, "SJF") == 0) {
+        int slice = (strcmp(policy, "RR30") == 0) ? 30 : 2;
+        scheduler_start_mt(slice);
+    }
+    else if (strcmp(policy, "FCFS") == 0 || strcmp(policy, "SJF") == 0) {
         scheduler_run();
     } 
     else if(strcmp(policy, "AGING") == 0){
@@ -526,7 +536,6 @@ else {
     else if (strcmp(policy, "RR30") == 0) {
         scheduler_run_RR(30);
     }
-}
     return 0;
 }
 
