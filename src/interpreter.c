@@ -165,8 +165,13 @@ source SCRIPT.TXT		Executes the file SCRIPT.TXT\n ";
 }
 
 int quit() {
-    scheduler_stop_mt();
     printf("Bye!\n");
+    if (scheduler_is_worker_thread()) {
+        // We are a worker - just exit this thread
+        // main thread is blocked in scheduler_start_mt and will handle cleanup
+        scheduler_worker_quit();
+        return 0;
+    }
     exit(0);
 }
 

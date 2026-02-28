@@ -6,13 +6,17 @@
 #include "interpreter.h"
 
 #include <pthread.h>
-
+#include <stdio.h>
+#include <stdlib.h>
 #define NUM_WORKERS 2
+
 int scheduler_running = 0;
+
 pthread_t workers[NUM_WORKERS];
 int mt_enabled = 0;
 int rr_slice = 2; // will store 2 (RR) or 30 (RR30)
 int active_workers = 0;
+int quit_called = 0;
 
 pthread_mutex_t rq_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t rq_cond = PTHREAD_COND_INITIALIZER;
@@ -20,6 +24,15 @@ pthread_cond_t rq_cond = PTHREAD_COND_INITIALIZER;
 
 int scheduler_is_running(){
 	return scheduler_running;
+}
+
+int scheduler_is_worker_thread() {
+    if (!mt_enabled) return 0;
+    pthread_t self = pthread_self();
+    for (int i = 0; i < NUM_WORKERS; i++) {
+        if (pthread_equal(self, workers[i])) return 1;
+    }
+    return 0;
 }
 
 
@@ -156,23 +169,17 @@ void scheduler_start_mt(int slice) {
     rr_slice = slice;
     mt_enabled = 1;
     active_workers = 0;
+    quit_called = 0;
 
     for (int i = 0; i < NUM_WORKERS; i++) {
         pthread_create(&workers[i], NULL, worker_rr, NULL);
     }
-}
 
-void scheduler_stop_mt() {
-    if (!mt_enabled){
-	    return;
-    }
-   
     pthread_mutex_lock(&rq_mutex);
-
-    while (!rq_is_empty() || active_workers > 0) {
+    while ((rq_is_empty() == 0 || active_workers > 0) && !quit_called) {
+        pthread_cond_broadcast(&rq_cond);
         pthread_cond_wait(&rq_cond, &rq_mutex);
     }
-
     mt_enabled = 0;
     pthread_cond_broadcast(&rq_cond);
     pthread_mutex_unlock(&rq_mutex);
@@ -181,9 +188,22 @@ void scheduler_stop_mt() {
         pthread_join(workers[i], NULL);
     }
 
-    reset_program_memory();
+        reset_program_memory();
 }
 
 int scheduler_is_mt_running() {
     return mt_enabled;
+}
+
+// Called when quit runs from inside a worker thread (batch script with #)
+void scheduler_worker_quit() {
+    // Signal all workers to stop after current instruction
+    pthread_mutex_lock(&rq_mutex);
+    quit_called = 1;
+    pthread_cond_broadcast(&rq_cond);
+    pthread_mutex_unlock(&rq_mutex);
+
+    // Exit this worker - main thread in scheduler_start_mt will
+    // join all workers and then we print Bye! and exit
+    pthread_exit(NULL);
 }
