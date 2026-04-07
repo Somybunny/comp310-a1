@@ -176,9 +176,9 @@ exec PROG1 [PROG2] [PROG3] POLICY [#] [MT]	 Executes up to 3 concurrent programs
 
 int quit() {
     printf("Bye!\n");
+
+    // Check if active thread
     if (scheduler_is_worker_thread()) {
-        // We are a worker - just exit this thread
-        // main thread is blocked in scheduler_start_mt and will handle cleanup
         scheduler_worker_quit();
         return 0;
     }
