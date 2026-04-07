@@ -17,6 +17,7 @@ struct PCB {
 
 int pcb_has_next_instruction(struct PCB *pcb);
 size_t pcb_next_instruction(struct PCB *pcb);
+struct PCB *create_process_already(struct PCB *pcb);
 struct PCB *create_process(const char *filename);
 struct PCB *create_process_from_FILE(FILE *f);
 void free_pcb(struct PCB *pcb);

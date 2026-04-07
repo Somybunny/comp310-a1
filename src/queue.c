@@ -26,13 +26,13 @@ void free_queue(struct queue *q) {
     free(q);
 }
 
-int program_already_scheduled(struct queue *q, char *name) {
+struct PCB *program_already_scheduled(struct queue *q, char *name) {
     struct PCB *p = q->head;
     while (p) {
-        if (strcmp(p->name, name) == 0) return 1;
+        if (strcmp(p->name, name) == 0) return p;
         p = p->next;
     }
-    return 0;
+    return NULL;
 }
 
 

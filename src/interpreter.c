@@ -540,7 +540,14 @@ int my_exec(char *args[], int args_size, bool MT) {
 
 
     for (int n = 0; n < args_size; ++n) {
-       struct PCB *pcb = create_process(args[n]);
+	struct PCB *pcb_already = program_already_scheduled(q, args[n]);
+	struct PCB *pcb = NULL;
+	if (pcb_already) {
+	    struct PCB *pcb = create_procress_already(pcb_already);
+	}
+	else {
+            struct PCB *pcb = create_process(args[n]);
+	}
         if (!pcb) {
             printf("Failed to create process\n");
             goto cleanup;
