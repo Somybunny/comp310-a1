@@ -1,13 +1,10 @@
 CC=gcc
-CFLAGS=-pthread
-FMT=indent
+#CFLAGS=-g -O0 -Wall #-DNDEBUG
+CFLAGS=-DNDEBUG -Wall
 
-mysh: shell.c interpreter.c shellmemory.c scheduler.c pcb.c readyqueue.c
-	$(CC) $(CFLAGS) -c shell.c interpreter.c shellmemory.c scheduler.c pcb.c readyqueue.c
-	$(CC) $(CFLAGS) -o mysh shell.o interpreter.o shellmemory.o scheduler.o pcb.o readyqueue.o
+mysh: shell.c interpreter.c shellmemory.c
+	$(CC) $(CFLAGS) -c shell.c interpreter.c shellmemory.c pcb.c queue.c schedule_policy.c
+	$(CC) $(CFLAGS) -o mysh shell.o interpreter.o shellmemory.o pcb.o queue.o schedule_policy.o
 
-style: shell.c shell.h interpreter.c interpreter.h shellmemory.c shellmemory.h scheduler.c scheduler.h pcb.c pcb.h readyqueue.c readyqueue.h
-	$(FMT) $?
-
-clean:
-	$(RM) mysh; $(RM) *.o; $(RM) *~
+clean: 
+	rm mysh; rm *.o

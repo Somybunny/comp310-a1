@@ -1,16 +1,23 @@
-#ifndef PCB_H
-#define PCB_H
+#pragma once
+#include <stddef.h>
+#include <stdio.h> 
 
-typedef struct PCB {
-    int pid;
-    int start;
-    int length;
-    int current;
-    int job_length_score;   
+typedef size_t pid;
+
+struct PCB {
+    pid pid;
+    char *name;
+    size_t line_base;
+    size_t line_count;
+    size_t duration;
+    size_t pc;
     struct PCB *next;
-} PCB;
+};
 
-PCB* create_pcb(int start, int length);
-void destroy_pcb(PCB *pcb);
 
-#endif
+int pcb_has_next_instruction(struct PCB *pcb);
+size_t pcb_next_instruction(struct PCB *pcb);
+struct PCB *create_process(const char *filename);
+struct PCB *create_process_from_FILE(FILE *f);
+void free_pcb(struct PCB *pcb);
+

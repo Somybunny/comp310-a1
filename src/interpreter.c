@@ -1,11 +1,10 @@
-//#define DEBUG 1
+// #define DEBUG 1
+
 
 #ifdef DEBUG
 #   define debug(...) fprintf(stderr, __VA_ARGS__)
 #else
 #   define debug(...)
-// NDEBUG disables asserts
-#   define NDEBUG
 #endif
 
 #include <assert.h>
@@ -16,15 +15,35 @@
 #include <dirent.h>             // scandir
 #include <unistd.h>             // chdir
 #include <sys/stat.h>           // mkdir
+#include <stdbool.h>            // bool
 // for run:
 #include <sys/types.h>          // pid_t
 #include <sys/wait.h>           // waitpid
 
 #include "shellmemory.h"
 #include "shell.h"
+
+
 #include "pcb.h"
-#include "readyqueue.h"
-#include "scheduler.h"
+#include "queue.h"
+#include "schedule_policy.h"
+
+
+#include <pthread.h>
+
+// DEFINITIONS
+#define true 1
+#define false 0
+#define MAX_ARGS_SIZE 7
+#define MAX_WORKERS 2
+
+// GLOBAL PARAMS
+
+bool threads_created = false;
+pthread_t workers[MAX_WORKERS];
+static bool quit_when_empty = false; // for threads
+static pthread_mutex_t q_mutex = PTHREAD_MUTEX_INITIALIZER; // queue lock
+static pthread_cond_t q_cond = PTHREAD_COND_INITIALIZER;
 
 int badcommand() {
     printf("Unknown Command\n");
@@ -57,8 +76,8 @@ int my_mkdir(char *name);
 int touch(char *path);
 int cd(char *path);
 int source(char *script);
+int my_exec(char *args[], int args_size, bool MT);
 int run(char *args[], int args_size);
-int exec(char *args[], int args_size);
 int badcommandFileDoesNotExist();
 
 // Interpret commands and their arguments
@@ -136,16 +155,20 @@ int interpreter(char *command_args[], int args_size) {
         if (args_size != 2)
             return badcommand();
         return source(command_args[1]);
+        // a2
+    } else if (strcmp(command_args[0], "exec") == 0) {
+        if (args_size < 2) return badcommand();
+        bool MT = false;
+		if(strcmp(command_args[args_size-1], "MT")==0){
+			MT=true;
+			args_size--;
+		}
+		return my_exec(&command_args[1], args_size - 1, MT);
 
     } else if (strcmp(command_args[0], "run") == 0) {
         if (args_size < 2)
             return badcommand();
         return run(&command_args[1], args_size - 1);
-
-    } else if (strcmp(command_args[0], "exec") == 0) {
-        if (args_size < 3 || args_size > 7)
-            return badcommand();
-        return exec(&command_args[1], args_size - 1);
 
     } else
         return badcommand();
@@ -154,34 +177,41 @@ int interpreter(char *command_args[], int args_size) {
 int help() {
 
     // note the literal tab characters here for alignment
-    char help_string[] = "COMMAND						 DESCRIPTION\n \
-help						 Displays all the commands\n \
-quit						 Exits / terminates the shell with “Bye!”\n \
-set VAR STRING					 Assigns a value to shell memory\n \
-print VAR					 Displays the STRING assigned to VAR\n \
-source SCRIPT.TXT				 Executes the file SCRIPT.TXT\n \
-echo STRING/VAR 				 Prints the STRING or the VAR value\n \
-my_ls                  			 Lists all the files present in the current directory\n \
-my_mkdir STRING/VAR    			 Creates a new directory with the name STRING or the VAR value\n \
-my_touch STRING        			 Creates a new empty file inside current directory\n \
-my_cd STRING           			 Changes current directory to directory STRING\n \
-run COMMAND ARGS        			 Runs an external command using fork-exec-wait\n \
-exec PROG1 [PROG2] [PROG3] POLICY [#] [MT]	 Executes up to 3 concurrent programs according to given scheduling policy \n \
-						 Possible policies: FCFS, SJF, AGING, RR, RR30 \n \
-						 #: Enables execution in the backgound \n \
-						 MT: Enables multi-threaded scheduling \n";
+    char help_string[] = "COMMAND			DESCRIPTION\n \
+help			Displays all the commands\n \
+quit			Exits / terminates the shell with “Bye!”\n \
+set VAR STRING		Assigns a value to shell memory\n \
+print VAR		Displays the STRING assigned to VAR\n \
+source SCRIPT.TXT		Executes the file SCRIPT.TXT\n ";
     printf("%s\n", help_string);
     return 0;
 }
 
-int quit() {
-    printf("Bye!\n");
-
-    // Check if active thread
-    if (scheduler_is_worker_thread()) {
-        scheduler_worker_quit();
+int scheduler_is_worker_thread(void) {
+    if (!threads_created) {
         return 0;
     }
+    pthread_t self = pthread_self();
+    return pthread_equal(self, workers[0]) || pthread_equal(self, workers[1]);
+}
+
+int quit() {
+    if (threads_created){
+        quit_when_empty = true;
+        // if caller is thread, if so, do not attempt to join on self,
+        // return without exiting
+        if (scheduler_is_worker_thread()) {
+            return 0;
+        }
+        else{
+            // main thread, need to wait for workers to finish
+            pthread_cond_broadcast(&q_cond); // Wake everyone up to die
+            for (size_t i = 0; i < MAX_WORKERS; ++i) {
+                pthread_join(workers[i], NULL);
+            }
+        }
+    }
+    printf("Bye!\n");
     exit(0);
 }
 
@@ -380,18 +410,210 @@ int cd(char *path) {
 }
 
 int source(char *script) {
-    int errCode = 0;
-    int start, length;
+    // change to use new infrastructure
+    // can be done by moving all logic to my_exec
+    // and calling that from here with a default scheduling policy
+    // since only 1 pcb anyway
+    char *args[2] = {script, "FCFS"};
+    return my_exec(args, 2, false);
+}
 
-    if (load_script(script, &start, &length) == -1){
-        return badcommandFileDoesNotExist();
+
+void runSchedule(struct queue *q, const struct schedule_policy *policy) {
+    struct PCB *next_pcb = policy->dequeue(q);
+    while (next_pcb) {
+        next_pcb = policy->run_pcb(next_pcb);
+        if (next_pcb) policy->enqueue(q, next_pcb);
+        next_pcb = policy->dequeue(q);
+    }
+}
+
+// see doc in header file
+struct PCB *run_pcb_to_completion(struct PCB *pcb) {
+    while (pcb_has_next_instruction(pcb)) {
+        size_t instr = pcb_next_instruction(pcb);
+        parseInput(get_line(instr));
+    }
+    free_pcb(pcb);
+    return NULL;
+}
+
+// see doc in header file
+struct PCB *run_pcb_for_n_steps(struct PCB *pcb, size_t n) {
+    debug("run n steps: n is %ld\n", n);
+    for (; n && pcb_has_next_instruction(pcb); --n) {
+        parseInput(get_line(pcb_next_instruction(pcb)));
+    }
+    debug("run n steps: looped to %ld\n", n);
+    // The loop runs until either we've done n steps or the pcb is out of
+    // instructions,  whichever happens first. But they might also happen
+    // at the same time, in which case we should still clean up.
+    // So check if there are more instructions, not the value of n.
+    if (pcb_has_next_instruction(pcb)) {
+        return pcb;
+    } else {
+        free_pcb(pcb);
+        return NULL;
+    }
+}
+
+static int background = false;
+static struct queue *q = NULL;
+static const struct schedule_policy *policy = NULL;
+
+
+
+void *scheduler_worker(void *arg) {
+    // what the thread will do until it dies
+    while (1) {
+        pthread_mutex_lock(&q_mutex);
+
+        while (!quit_when_empty && is_queue_empty(q)) {
+            // smart sleeping
+            pthread_cond_wait(&q_cond, &q_mutex);
+        }
+
+        if (quit_when_empty && is_queue_empty(q)) {
+            pthread_mutex_unlock(&q_mutex);
+            pthread_exit(NULL);
+        }
+
+        struct PCB *pcb = policy->dequeue(q);
+        pthread_mutex_unlock(&q_mutex);
+
+        if (!pcb) continue;
+
+        pcb = policy->run_pcb(pcb);
+
+        if (pcb) {
+            pthread_mutex_lock(&q_mutex);
+            policy->enqueue(q, pcb);
+            pthread_cond_signal(&q_cond);
+            pthread_mutex_unlock(&q_mutex);
+        }
+    }
+    return NULL;
+}
+
+void create_threads(void) {
+    if (threads_created) return;
+
+    threads_created = true;
+
+    for (size_t i = 0; i < MAX_WORKERS; ++i) {
+        pthread_create(&workers[i], NULL, scheduler_worker, NULL);
+    }
+}
+
+
+
+int my_exec(char *args[], int args_size, bool MT) {
+    assert(args_size >= 2);
+    int background_exec = background; 
+    if (MT) {
+        create_threads();
     }
 
-    PCB *pcb = create_pcb(start, length);
-    enqueue(pcb);
-    errCode = scheduler_run();
-    return errCode;
+    if (strcmp(args[args_size-1], "#") == 0) {
+        background = true;
+        args_size--; // effectively remove "#" from the arguments.
+    }
+    if (args_size < 2 || args_size > 4) {
+        return badcommand();
+    }
+    char *policy_name = args[args_size-1];
+    args_size--;
+    policy = get_policy(policy_name);
+    if (!policy) {
+        printf("Bad command: unknown scheduling policy\n");
+        return 1;
+    }
+
+    if (!background_exec) {
+        // normal exec
+        reset_linememory_allocator();
+        assert(!q);
+        q = alloc_queue();
+    } else {
+        assert(q);
+    }
+
+
+    for (int n = 0; n < args_size; ++n) {
+        if (program_already_scheduled(q, args[n])) {
+            printf("Bad command: script named %s already scheduled\n", args[n]);
+            goto cleanup;
+        }
+        struct PCB *pcb = create_process(args[n]);
+        if (!pcb) {
+            printf("Failed to create process\n");
+            goto cleanup;
+        }
+        // once threads exist, need to use mutex
+        if (threads_created){
+            pthread_mutex_lock(&q_mutex);
+            policy->enqueue(q, pcb);
+            pthread_cond_signal(&q_cond); // Wake up a worker
+            pthread_mutex_unlock(&q_mutex);
+        }
+        else{
+            policy->enqueue(q, pcb);
+        }
+        
+    }
+
+    if (background && !background_exec) {
+        struct PCB *pcb = create_process_from_FILE(stdin); // cheat to read until EOF char
+        if (!pcb) {
+            printf("Failed to create STDIN process\n");
+            goto cleanup;
+        }
+        // once threads exist, need to use mutex
+        if (threads_created){
+            pthread_mutex_lock(&q_mutex);
+            policy->enqueue_ignoring_priority(q, pcb);
+            pthread_cond_signal(&q_cond); // Wake up a worker
+            pthread_mutex_unlock(&q_mutex);
+        }
+        else{
+            // dont need to worry about mutex
+            policy->enqueue_ignoring_priority(q, pcb);
+        }
+        
+    }
+
+    if (!background_exec) {
+        if (threads_created){
+            // threads are taking care of queue
+            // simulate work (ie wait for them to be done)
+            while (true) {
+                pthread_mutex_lock(&q_mutex);
+                bool empty = is_queue_empty(q); // Check if queue is empty
+                pthread_mutex_unlock(&q_mutex);
+                if (empty) {
+                    break; 
+                }
+                usleep(1000); // Small sleep to prevent unnecessary spin
+            }
+        }
+        else{
+            runSchedule(q, policy);
+        }
+        if (background) return quit();
+
+top_level_cleanup:
+        free_queue(q);
+        q = NULL;
+        policy = NULL;
+    }
+
+background_cleanup:
+    return 0;
+cleanup:
+    if (background_exec) goto background_cleanup;
+    else                 goto top_level_cleanup;
 }
+
 
 int run(char *args[], int arg_size) {
     // copy the args into a new NULL-terminated array.
@@ -426,121 +648,6 @@ int run(char *args[], int arg_size) {
         // we are the parent process.
         waitpid(pid, NULL, 0);
     }
-
+    free(adj_args);
     return 0;
 }
-
-// Helper to sort for SJF, bubble sort since not many programs
-void sort(PCB *pcbs[], int nb) {
-    for (int i = 0; i < nb - 1; i++) {
-        for (int j = 0; j < nb - i - 1; j++) {
-            if (pcbs[j]->job_length_score > pcbs[j + 1]->job_length_score) {
- 	        PCB *temp = pcbs[j];
-		pcbs[j] = pcbs[j+1];
-		pcbs[j+1] = temp;
-            }
-        } 
-    }
-}
-
-int exec(char *args[], int args_size) {
-    int bg = 0;
-    int mt = 0;
-    
-    // Check if MT mode
-    if (args_size >= 2 && strcmp(args[args_size - 1], "MT") == 0) {
-        mt = 1;
-        args_size--;
-    }
-
-    // Check if background mode
-    if (args_size >= 2 && strcmp(args[args_size - 1], "#") == 0) {
-        bg = 1;
-	args_size--; // ignore '#' during parsing
-    }
-
-    char *policy = args[args_size - 1];
-    if (strcmp(policy, "FCFS") != 0 && strcmp(policy, "SJF") != 0 && strcmp(policy, "RR") != 0 && strcmp(policy, "RR30") != 0 && strcmp(policy, "AGING") != 0) {
-        printf("Invalid policy\n");
-        return 1;
-    }
-
-    int nb_programs = args_size -1;
-
-    // Check for duplicate programs
-    for (int i = 0; i < nb_programs; i++) {
-        for (int j = i + 1; j < nb_programs; j++) {
-	    if (strcmp(args[i], args[j]) == 0) {
-	        printf("Invalid programs: duplicate program names\n");
-		return 1;
-	    }
-	}
-    }
-
-    PCB *pcbs[3]; //max 3 programs
-	
-    int startPCB;
-    int length;
-
-    // Create pcbs for each program
-    for (int i = 0; i < nb_programs; i++) {
-        int start = load_script(args[i], &startPCB, &length);
-	if (start == -1) {
-	    printf("Error: Could not load program %s\n", args[i]);
-
-	    // Cleanup loaded things
-	    reset_program_memory();
-	    return 1;
-	}
-	pcbs[i] = create_pcb(startPCB, length);
-    }
-
-    if(!scheduler_is_running() && !scheduler_is_mt_running()){
-        rq_init();
-    }
-
-    // Handle background mode
-    PCB *batch_pcb = NULL;
-    if (bg) {
-        int batch_start, batch_length;
-        load_batch_script(&batch_start, &batch_length);
-	batch_pcb = create_pcb(batch_start, batch_length);
-	enqueue(batch_pcb);
-    }
-
-    // Sort by length for SJF/AGING
-    if (strcmp(policy, "SJF") == 0 || strcmp(policy, "AGING") == 0) {
-        sort(pcbs, nb_programs);
-    }
-
-    if (scheduler_is_running() && (strcmp(policy, "SJF") == 0 || strcmp(policy, "AGING") == 0)){
-	for (int i = 0; i < nb_programs; i++) {
-	    enqueue_length(pcbs[i]);
-	}
-    }
-
-    // Enqueue
-    for (int i = 0; i < nb_programs; i++) {
-        enqueue(pcbs[i]);
-    }
-
-    // Run scheduler depending on policy
-    if (mt && (strcmp(policy, "RR") == 0 || strcmp(policy, "RR30") == 0)) {
-        int slice = (strcmp(policy, "RR30") == 0) ? 30 : 2;
-        scheduler_start_mt(slice);
-    }
-    else if (strcmp(policy, "FCFS") == 0 || strcmp(policy, "SJF") == 0) {
-        scheduler_run();
-    } 
-    else if(strcmp(policy, "AGING") == 0){
-        scheduler_run_aging();
-    } 
-    else if (strcmp(policy, "RR") == 0) {
-        scheduler_run_RR(2);
-    }
-    else if (strcmp(policy, "RR30") == 0) {
-        scheduler_run_RR(30);
-    }
-    return 0;
-}
-

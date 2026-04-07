@@ -7,7 +7,7 @@
 #include "interpreter.h"
 #include "shellmemory.h"
 
-int parseInput(char ui[]);
+
 
 // Start of everything
 int main(int argc, char *argv[]) {
@@ -53,7 +53,7 @@ int wordEnding(char c) {
     return c == '\0' || c == '\n' || isspace(c) || c == ';';
 }
 
-int parseInput(char inp[]) {
+int parseInput(const char inp[]) {
     char tmp[200], *words[100];
     int ix = 0, w = 0;
     int wordlen;

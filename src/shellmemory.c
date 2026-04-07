@@ -1,17 +1,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <assert.h>
 #include "shellmemory.h"
 
-char *program_memory[MAX_PROGRAM_LINES];
-int program_memory_count = 0;
 
-struct memory_struct {
-    char *var;
-    char *value;
-};
+#define true 1
+#define false 0
 
-struct memory_struct shellmemory[MEM_SIZE];
 
 // Helper functions
 int match(char *model, char *var) {
@@ -26,7 +22,72 @@ int match(char *model, char *var) {
         return 0;
 }
 
+
+
+// for exec memory
+
+struct program_line {
+    int allocated; // for sanity-checking
+    char *line;
+};
+
+struct program_line linememory[MEM_SIZE];
+size_t next_free_line = 0;
+
+void reset_linememory_allocator() {
+    next_free_line = 0;
+    assert_linememory_is_empty();
+}
+
+void assert_linememory_is_empty() {
+    for (size_t i = 0; i < MEM_SIZE; ++i) {
+        assert(!linememory[i].allocated);
+        assert(linememory[i].line == NULL);
+    }
+}
+
+void init_linemem() {
+    for (size_t i = 0; i < MEM_SIZE; ++i) {
+        linememory[i].allocated = false;
+        linememory[i].line = NULL;
+    }
+}
+
+size_t allocate_line(const char *line) {
+    if (next_free_line >= MEM_SIZE) {
+        // out of memory!
+        return (size_t)(-1);
+    }
+    size_t index = next_free_line++;
+    assert(!linememory[index].allocated);
+
+    linememory[index].allocated = true;
+    linememory[index].line = strdup(line);
+    return index;
+}
+
+void free_line(size_t index) {
+    free(linememory[index].line);
+    linememory[index].allocated = false;
+    linememory[index].line = NULL;
+}
+
+const char *get_line(size_t index) {
+    assert(linememory[index].allocated);
+    return linememory[index].line;
+}
+
+
 // Shell memory functions
+
+struct memory_struct { // block or line
+    char *var;
+    char *value;
+};
+
+struct memory_struct shellmemory[MEM_SIZE];
+
+
 
 void mem_init() {
     int i;
@@ -69,69 +130,4 @@ char *mem_get_value(char *var_in) {
         }
     }
     return NULL;
-}
-
-
-int load_script(char *filename, int *start, int *length){
-    FILE *fp = fopen(filename, "rt");
-    
-    // File not found
-    if (fp == NULL) {
-        return -1;
-    }
-
-    *start = program_memory_count;
-    *length = 0;
-
-    char line[101];
-    while (fgets(line, sizeof(line), fp)) {
-	
-	// Memory full
-        if (program_memory_count >= MAX_PROGRAM_LINES) {
-            fclose(fp);
-            return -1;
-        }
-	
-	// Put program and update pointers
-        program_memory[program_memory_count] = strdup(line);
-        program_memory_count++;
-        (*length)++;
-    }
-
-    fclose(fp);
-    return 0;
-}
-
-int load_batch_script(int *start, int *length){
-    char line[101];    
-
-    *start = program_memory_count;
-    *length = 0;
-
-    while (fgets(line, sizeof(line), stdin)) {
-	
-	// Memory full
-        if (program_memory_count >= MAX_PROGRAM_LINES) {
-            return -1;
-        }
-	
-	// Put program and update pointers
-        program_memory[program_memory_count] = strdup(line);
-        program_memory_count++;
-        (*length)++;
-    }   
-
-    return 0;
-}
-
-void reset_program_memory(){
-    for (int i = 0; i < program_memory_count; i++) {
-        free(program_memory[i]);
-    }
-    program_memory_count = 0;
-}
-
-
-char *get_program_line(int index) {
-    return program_memory[index];
 }
