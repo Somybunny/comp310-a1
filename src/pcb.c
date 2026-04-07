@@ -5,6 +5,8 @@
 #include "shellmemory.h"
 #include "pcb.h"
 
+static pid fresh_pid = 1;
+
 int pcb_has_next_instruction(struct PCB *pcb) {
     return pcb->pc < pcb->line_count;
 }
@@ -13,6 +15,22 @@ size_t pcb_next_instruction(struct PCB *pcb) {
     size_t i = pcb->line_base + pcb->pc;
     pcb->pc++;
     return i;
+}
+
+struct PCB *create_process_already(struct PCB *pcb) {
+    if (!pcb) {
+        perror("failed to create new pcb for create_process_already");
+	return NULL;
+    }
+    struct PCB *new_pcb = malloc(sizeof(struct PCB));
+    new_pcb->pid = fresh_pid++;
+    new_pcb->name = pcb->name;
+    new_pcb->next = NULL;
+    new_pcb->pc = 0;
+    new_pcb->line_count = pcb->line_count;
+    new_pcb->line_base = pcb->line_base;
+    new_pcb->duration = pcb->duration;
+    return new_pcb;
 }
 
 struct PCB *create_process(const char *filename) {
@@ -29,7 +47,6 @@ struct PCB *create_process(const char *filename) {
 
 struct PCB *create_process_from_FILE(FILE *script) {
     struct PCB *pcb = malloc(sizeof(struct PCB));
-    static pid fresh_pid = 1;
     pcb->pid = fresh_pid++;
     pcb->name = "";
     pcb->next = NULL;
@@ -59,9 +76,9 @@ struct PCB *create_process_from_FILE(FILE *script) {
 }
 
 void free_pcb(struct PCB *pcb) {
-    for (size_t ix = pcb->line_base; ix < pcb->line_base + pcb->line_count; ++ix) {
-        free_line(ix);
-    }
+    //for (size_t ix = pcb->line_base; ix < pcb->line_base + pcb->line_count; ++ix) {
+    //    free_line(ix);
+    //}
     if (strcmp("", pcb->name)) {
         free(pcb->name);
     }
