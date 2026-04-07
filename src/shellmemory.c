@@ -31,50 +31,50 @@ struct program_line {
     char *line;
 };
 
-struct program_line linememory[MEM_SIZE];
+struct program_line frame_store[FRAME_STORE_SIZE];
 size_t next_free_line = 0;
 
-void reset_linememory_allocator() {
+void reset_frame_allocator() {
     next_free_line = 0;
-    assert_linememory_is_empty();
+    assert_frame_is_empty();
 }
 
-void assert_linememory_is_empty() {
-    for (size_t i = 0; i < MEM_SIZE; ++i) {
-        assert(!linememory[i].allocated);
-        assert(linememory[i].line == NULL);
+void assert_frame_is_empty() {
+    for (size_t i = 0; i < FRAME_STORE_SIZE; ++i) {
+        assert(!frame_store[i].allocated);
+        assert(frame_store[i].line == NULL);
     }
 }
 
-void init_linemem() {
-    for (size_t i = 0; i < MEM_SIZE; ++i) {
-        linememory[i].allocated = false;
-        linememory[i].line = NULL;
+void init_frame() {
+    for (size_t i = 0; i < FRAME_STORE_SIZE; ++i) {
+        frame_store[i].allocated = false;
+        frame_store[i].line = NULL;
     }
 }
 
 size_t allocate_line(const char *line) {
-    if (next_free_line >= MEM_SIZE) {
+    if (next_free_line >= FRAME_STORE_SIZE) {
         // out of memory!
         return (size_t)(-1);
     }
     size_t index = next_free_line++;
-    assert(!linememory[index].allocated);
+    assert(!frame_store[index].allocated);
 
-    linememory[index].allocated = true;
-    linememory[index].line = strdup(line);
+    frame_store[index].allocated = true;
+    frame_store[index].line = strdup(line);
     return index;
 }
 
 void free_line(size_t index) {
-    free(linememory[index].line);
-    linememory[index].allocated = false;
-    linememory[index].line = NULL;
+    free(frame[index].line);
+    frame_store[index].allocated = false;
+    frame_store[index].line = NULL;
 }
 
 const char *get_line(size_t index) {
-    assert(linememory[index].allocated);
-    return linememory[index].line;
+    assert(frame_store[index].allocated);
+    return frame_store[index].line;
 }
 
 
@@ -85,34 +85,34 @@ struct memory_struct { // block or line
     char *value;
 };
 
-struct memory_struct shellmemory[MEM_SIZE];
+struct memory_struct var_store[VAR_STORE_SIZE];
 
 
 
-void mem_init() {
+void var_init() {
     int i;
-    for (i = 0; i < MEM_SIZE; i++) {
-        shellmemory[i].var = "none";
-        shellmemory[i].value = "none";
+    for (i = 0; i < VAR_STORE_SIZE; i++) {
+        var_store[i].var = "none";
+        var_store[i].value = "none";
     }
 }
 
 // Set key value pair
-void mem_set_value(char *var_in, char *value_in) {
+void var_set_value(char *var_in, char *value_in) {
     int i;
 
-    for (i = 0; i < MEM_SIZE; i++) {
-        if (strcmp(shellmemory[i].var, var_in) == 0) {
-            shellmemory[i].value = strdup(value_in);
+    for (i = 0; i < VAR_STORE_SIZE; i++) {
+        if (strcmp(var_store[i].var, var_in) == 0) {
+            var_store[i].value = strdup(value_in);
             return;
         }
     }
 
     //Value does not exist, need to find a free spot.
-    for (i = 0; i < MEM_SIZE; i++) {
-        if (strcmp(shellmemory[i].var, "none") == 0) {
-            shellmemory[i].var = strdup(var_in);
-            shellmemory[i].value = strdup(value_in);
+    for (i = 0; i < VAR_STORE_SIZE; i++) {
+        if (strcmp(var_store[i].var, "none") == 0) {
+            var_store[i].var = strdup(var_in);
+            var_store[i].value = strdup(value_in);
             return;
         }
     }
@@ -121,13 +121,29 @@ void mem_set_value(char *var_in, char *value_in) {
 }
 
 //get value based on input key
-char *mem_get_value(char *var_in) {
+char *var_get_value(char *var_in) {
     int i;
 
-    for (i = 0; i < MEM_SIZE; i++) {
-        if (strcmp(shellmemory[i].var, var_in) == 0) {
-            return strdup(shellmemory[i].value);
+    for (i = 0; i < VAR_STORE_SIZE; i++) {
+        if (strcmp(var_store[i].var, var_in) == 0) {
+            return strdup(var_store[i].value);
         }
     }
     return NULL;
+}
+
+// Frame helpers
+// Returns the frame number for a given line index
+int get_frame(size_t line_index) {
+    return line_index / FRAME_SIZE;
+}
+
+// Returns the offset within the frame
+int get_offset(size_t line_index) {
+    return line_index % FRAME_SIZE;
+}
+
+// Returns the total number of frames currently allocated
+int total_frames(size_t total_lines) {
+    return (total_lines + FRAME_SIZE - 1) / FRAME_SIZE; // ceil division
 }
