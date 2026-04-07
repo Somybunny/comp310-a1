@@ -216,12 +216,12 @@ int quit() {
 }
 
 int set(char *var, char *value) {
-    mem_set_value(var, value);
+    var_set_value(var, value);
     return 0;
 }
 
 int print(char *var) {
-    char *value = mem_get_value(var);
+    char *value = var_get_value(var);
     if (value) {
         printf("%s\n", value);
         free(value);
@@ -236,7 +236,7 @@ int echo(char *tok) {
     // is it a var?
     if (tok[0] == '$') {
         tok++;                  // advance pointer, so that tok is now the stuff after '$'
-        tok = mem_get_value(tok);
+        tok = var_get_value(tok);
         if (tok == NULL) {
             tok = "";           // must use empty string, can't pass NULL to printf
         } else {
@@ -350,7 +350,7 @@ int my_mkdir(char *name) {
     if (name[0] == '$') {
         ++name;
         // lookup name
-        name = mem_get_value(name);
+        name = var_get_value(name);
         debug("  lookup: %s\n", name ? name : "(NULL)");
         if (name) {
             // name exists, should free whatever we got
@@ -531,7 +531,7 @@ int my_exec(char *args[], int args_size, bool MT) {
 
     if (!background_exec) {
         // normal exec
-        reset_linememory_allocator();
+        reset_frame_allocator();
         assert(!q);
         q = alloc_queue();
     } else {
