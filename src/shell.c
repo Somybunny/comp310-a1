@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
     }
 
     //init shell memory
-    mem_init();
+    var_init();
     while (1) {
         if (!batch_mode) {
             printf("%c ", prompt);

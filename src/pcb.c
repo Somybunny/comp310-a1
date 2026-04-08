@@ -15,11 +15,13 @@ size_t pcb_next_instruction(struct PCB *pcb) {
     int page = pcb->pc / FRAME_SIZE;
     int offset = pcb->pc % FRAME_SIZE;
 
-    // PAGE FAULT
+    // page fault
     if (pcb->page_table[page] == -1) {
         handle_page_fault(pcb, page);
+	return PAGE_FAULT_SIGNAL;
     }
 
+    // set to next inst
     int frame = pcb->page_table[page];
 
     size_t index = frame * FRAME_SIZE + offset;
@@ -30,10 +32,13 @@ size_t pcb_next_instruction(struct PCB *pcb) {
 }
 
 struct PCB *create_process_already(struct PCB *pcb) {
+    // check if pcb exists
     if (!pcb) {
         perror("failed to create new pcb for create_process_already");
 	return NULL;
     }
+
+    // copy data
     struct PCB *new_pcb = malloc(sizeof(struct PCB));
     new_pcb->pid = fresh_pid++;
     new_pcb->name = pcb->name;
@@ -43,7 +48,6 @@ struct PCB *create_process_already(struct PCB *pcb) {
     new_pcb->line_base = pcb->line_base;
     new_pcb->duration = pcb->duration;
     new_pcb->line_loaded = pcb->line_loaded;
-    new_pcb->page_current = new_pcb->page_current;
     memcpy(new_pcb->page_table, pcb->page_table, sizeof(pcb->page_table));
     return new_pcb;
 }
@@ -76,7 +80,8 @@ struct PCB *create_process_from_FILE(FILE *script) {
         pcb->page_table[i] = -1;
     }
 
-    while (!feof(script) || file_lines_loaded < PAGE_SIZE * FRAME_SIZE) {
+    // loop for 2 pages or until no lines
+    while (!feof(script) || line_loaded < PAGE_SIZE * FRAME_SIZE) {
         memset(linebuf, 0, sizeof(linebuf));
         fgets(linebuf, MAX_USER_INPUT, script);
 
@@ -96,7 +101,7 @@ struct PCB *create_process_from_FILE(FILE *script) {
 	pcb->page_table[page] = index / FRAME_SIZE;
     }
 
-    // count remaining lines (but DON'T load them)
+    // count remaining lines
     while (fgets(linebuf, MAX_USER_INPUT, script)) {
         pcb->line_count++;
     }
@@ -116,4 +121,85 @@ void free_pcb(struct PCB *pcb) {
         free(pcb->name);
     }
     free(pcb);
+}
+
+// page fault helper
+void load_page_into_frame(struct PCB *pcb, int page, int frame) {
+    FILE *f = fopen(pcb->filename, "rt");
+
+    char linebuf[MAX_USER_INPUT];
+
+    int start = pcb->line_loaded;
+
+    // skip lines
+    for (int i = 0; i < start; i++) {
+        fgets(linebuf, MAX_USER_INPUT, f);
+    }
+
+    // load 3 lines
+    for (int i = 0; i < FRAME_SIZE; i++) {
+        if (fgets(linebuf, MAX_USER_INPUT, f)) {
+            int idx = frame * FRAME_SIZE + i;
+
+            frame_store[idx].line = strdup(linebuf);
+            frame_store[idx].allocated = 1;
+        }
+    }
+
+    fclose(f);
+}
+
+
+void evict_frame(int frame) {
+    for (int i = 0; i < FRAME_SIZE; i++) {
+        int idx = frame * FRAME_SIZE + i;
+
+        free(frame_store[idx].line);
+        frame_store[idx].line = NULL;
+        frame_store[idx].allocated = 0;
+    }
+
+    // CRITICAL: update ALL PCBs
+    for each PCB p:
+        for each page:
+            if (p->page_table[page] == frame)
+                p->page_table[page] = -1;
+}
+
+void print_victim(int frame) {
+    printf("Victim page contents:\n");
+
+    for (int i = 0; i < FRAME_SIZE; i++) {
+        int idx = frame * FRAME_SIZE + i;
+
+        if (frame_store[idx].line)
+            printf("%s", frame_store[idx].line);
+    }
+
+    printf("End of victim page contents.\n");
+}
+
+
+// page fault handler
+void handle_page_fault(struct PCB *pcb, int page) {
+    printf("Page fault!\n");
+    // check if free frame
+    int frame = find_free_frame();
+
+    // find evict frame
+    if (frame == -1) {
+        frame = pick_victim_frame();
+
+	// print victim frame content
+        print_victim(frame);
+
+	// update all page tables
+        evict_frame(frame);
+    }
+
+    // load the line in frame
+    load_page_into_frame(pcb, page, frame);
+    
+    // put the frame in page table
+    pcb->page_table[page] = frame;
 }

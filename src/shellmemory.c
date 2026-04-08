@@ -67,7 +67,7 @@ size_t allocate_line(const char *line) {
 }
 
 void free_line(size_t index) {
-    free(frame[index].line);
+    free(frame_store[index].line);
     frame_store[index].allocated = false;
     frame_store[index].line = NULL;
 }
@@ -153,4 +153,21 @@ void align_to_next_page() {
     if (next_free_line % FRAME_SIZE != 0) {
         next_free_line += FRAME_SIZE - (next_free_line % FRAME_SIZE);
     }
+}
+
+int find_free_frame() {
+    int num_frames = FRAME_STORE_SIZE / FRAME_SIZE;
+
+    for (int f = 0; f < num_frames; f++) {
+        int start = f * FRAME_SIZE;
+
+        if (!frame_store[start].allocated &&
+            !frame_store[start + 1].allocated &&
+            !frame_store[start + 2].allocated) {
+
+            return f;
+        }
+    }
+
+    return -1;
 }

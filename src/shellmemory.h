@@ -17,3 +17,4 @@ int get_frame(size_t line_index);
 int get_offset(size_t line_index);
 int total_frames(size_t total_lines);
 void align_to_next_page();
+int find_free_frame();
