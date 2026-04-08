@@ -1,6 +1,7 @@
 #pragma once
 #include <stddef.h>
 #include <stdio.h> 
+#define PAGE_SIZE 2
 
 typedef size_t pid;
 
@@ -12,6 +13,9 @@ struct PCB {
     size_t duration;
     size_t pc;
     struct PCB *next;
+
+    size_t line_loaded;  // keep track where in file
+    int *page_table[FRAME_STORE_SIZE/FRAME_SIZE]; // page table
 };
 
 

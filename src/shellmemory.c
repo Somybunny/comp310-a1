@@ -147,3 +147,10 @@ int get_offset(size_t line_index) {
 int total_frames(size_t total_lines) {
     return (total_lines + FRAME_SIZE - 1) / FRAME_SIZE; // ceil division
 }
+
+// Put next free lines at the next page 
+void align_to_next_page() {
+    if (next_free_line % FRAME_SIZE != 0) {
+        next_free_line += FRAME_SIZE - (next_free_line % FRAME_SIZE);
+    }
+}

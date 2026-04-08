@@ -12,9 +12,21 @@ int pcb_has_next_instruction(struct PCB *pcb) {
 }
 
 size_t pcb_next_instruction(struct PCB *pcb) {
-    size_t i = pcb->line_base + pcb->pc;
+    int page = pcb->pc / FRAME_SIZE;
+    int offset = pcb->pc % FRAME_SIZE;
+
+    // PAGE FAULT
+    if (pcb->page_table[page] == -1) {
+        handle_page_fault(pcb, page);
+    }
+
+    int frame = pcb->page_table[page];
+
+    size_t index = frame * FRAME_SIZE + offset;
+
     pcb->pc++;
-    return i;
+
+    return index;
 }
 
 struct PCB *create_process_already(struct PCB *pcb) {
@@ -30,6 +42,9 @@ struct PCB *create_process_already(struct PCB *pcb) {
     new_pcb->line_count = pcb->line_count;
     new_pcb->line_base = pcb->line_base;
     new_pcb->duration = pcb->duration;
+    new_pcb->line_loaded = pcb->line_loaded;
+    new_pcb->page_current = new_pcb->page_current;
+    memcpy(new_pcb->page_table, pcb->page_table, sizeof(pcb->page_table));
     return new_pcb;
 }
 
@@ -54,7 +69,14 @@ struct PCB *create_process_from_FILE(FILE *script) {
     pcb->line_count = 0;
     pcb->line_base = 0;
     char linebuf[MAX_USER_INPUT];
-    while (!feof(script)) {
+    size_t lines_loaded = 0;
+
+    // initialize page table
+    for (int i = 0; i < (FRAME_STORE_SIZE/FRAME_SIZE); i++) {
+        pcb->page_table[i] = -1;
+    }
+
+    while (!feof(script) || file_lines_loaded < PAGE_SIZE * FRAME_SIZE) {
         memset(linebuf, 0, sizeof(linebuf));
         fgets(linebuf, MAX_USER_INPUT, script);
 
@@ -68,10 +90,21 @@ struct PCB *create_process_from_FILE(FILE *script) {
         if (pcb->line_count == 0) {
             pcb->line_base = index;
         }
+
+        pcb->line_count++;
+	int page = lines_loaded++ / FRAME_SIZE;
+	pcb->page_table[page] = index / FRAME_SIZE;
+    }
+
+    // count remaining lines (but DON'T load them)
+    while (fgets(linebuf, MAX_USER_INPUT, script)) {
         pcb->line_count++;
     }
+
     fclose(script);
     pcb->duration = pcb->line_count;
+    pcb->line_loaded = lines_loaded;
+    align_to_next_page();
     return pcb;
 }
 
