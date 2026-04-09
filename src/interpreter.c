@@ -414,18 +414,8 @@ int source(char *script) {
     // can be done by moving all logic to my_exec
     // and calling that from here with a default scheduling policy
     // since only 1 pcb anyway
-    reset_frame_allocator();
-    struct PCB pcb* = create_process(script);
-    if (!pcb) {
-    	return badcommandFileDoesNotExist();
-    }
-
-    while (pcb_has_next_instruction(pcb)) {
-    	size_t instr = pcb_next_instruction(pcb);
-	parseInput(get_line(instr));
-    }
-    free_pcb(pcb);
-    return 0;
+    char *args[2] = {script, "FCFS"};
+    return my_exec(args, 2, false);
 }
 
 
