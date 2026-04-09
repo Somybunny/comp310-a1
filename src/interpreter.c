@@ -415,7 +415,7 @@ int source(char *script) {
     // and calling that from here with a default scheduling policy
     // since only 1 pcb anyway
     reset_frame_allocator();
-    struct PCB pcb* = create_process(script);
+    struct PCB *pcb = create_process(script);
     if (!pcb) {
     	return badcommandFileDoesNotExist();
     }
