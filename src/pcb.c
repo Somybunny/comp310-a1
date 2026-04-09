@@ -81,12 +81,12 @@ struct PCB *create_process_from_FILE(FILE *script) {
     size_t lines_loaded = 0;
 
     // initialize page table
-    for (int i = 0; i < (FRAME_STORE_SIZE/FRAME_SIZE); i++) {
+    for (int i = 0; i < (100); i++) {
         pcb->page_table[i] = -1;
     }
 
     // loop for 2 pages or until no lines
-    while (!feof(script) && pcb->line_loaded < PAGE_SIZE * FRAME_SIZE) {
+    while (!feof(script) && lines_loaded < PAGE_SIZE * FRAME_SIZE) {
         memset(linebuf, 0, sizeof(linebuf));
         fgets(linebuf, MAX_USER_INPUT, script);
 
@@ -115,6 +115,7 @@ struct PCB *create_process_from_FILE(FILE *script) {
     pcb->duration = pcb->line_count;
     pcb->line_loaded = lines_loaded;
     align_to_next_page();
+
     return pcb;
 }
 

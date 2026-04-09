@@ -218,7 +218,7 @@ void load_page_into_frame(struct PCB *pcb, int page, int frame) {
     FILE *f = fopen(pcb->name, "rt");
 
     char linebuf[MAX_USER_INPUT];
-
+    pcb->page_table[page] = frame;
     int start = pcb->line_loaded;
 
     // skip lines
@@ -237,6 +237,7 @@ void load_page_into_frame(struct PCB *pcb, int page, int frame) {
 
             frame_store[idx].line = strdup(linebuf);
             frame_store[idx].allocated = 1;
+            pcb->line_loaded++;
         }
     }
 
@@ -258,13 +259,14 @@ void evict_frame(int frame) {
     // CRITICAL: update ALL PCBs
     struct PCB *curr_pcb = get_queue_head();
     while (curr_pcb != NULL) {
-	for (int i = 0; i < FRAME_STORE_SIZE / FRAME_SIZE; i++) {
+	for (int i = 0; i < 100; i++) {
             if (curr_pcb->page_table[i] == frame) {
                 curr_pcb->page_table[i] = -1;
 	    }
 	}
 	curr_pcb = curr_pcb->next;
     }
+
 }
 
 void print_victim(int frame) {
