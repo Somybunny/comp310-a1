@@ -4,4 +4,4 @@ int help();
 
 struct PCB *run_pcb_to_completion(struct PCB *pcb);
 struct PCB *run_pcb_for_n_steps(struct PCB *pcb, size_t n);
-struct PCB *get_queue_head(struct PCB *pcb);
+struct PCB *get_queue_head();
