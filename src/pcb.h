@@ -1,6 +1,7 @@
 #pragma once
 #include <stddef.h>
 #include <stdio.h> 
+#include "shellmemory.h"
 #define PAGE_SIZE 2
 #define PAGE_FAULT_SIGNAL ((size_t)-1)
 

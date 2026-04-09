@@ -552,7 +552,7 @@ int my_exec(char *args[], int args_size, bool MT) {
 	struct PCB *pcb_already = program_already_scheduled(q, args[n]);
 	struct PCB *pcb = NULL;
 	if (pcb_already) {
-	    pcb = create_procress_already(pcb_already);
+	    pcb = create_process_already(pcb_already);
 	}
 	else {
             pcb = create_process(args[n]);

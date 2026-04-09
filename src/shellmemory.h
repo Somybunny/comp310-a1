@@ -2,6 +2,8 @@
 #define MEM_SIZE 1000
 #define FRAME_SIZE 3
 
+struct PCB;
+
 void init_frame_log();
 void update_LRU_clock();
 int pick_victim_frame();
@@ -23,6 +25,6 @@ int get_offset(size_t line_index);
 int total_frames(size_t total_lines);
 void align_to_next_page();
 int find_free_frame();
-void print_victime(int frame);
+void print_victim(int frame);
 void load_page_into_frame(struct PCB *pcb, int page, int frame);
 void evict_frame(int frame);

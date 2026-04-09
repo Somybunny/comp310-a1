@@ -5,6 +5,8 @@
 #include <assert.h>
 #include "shellmemory.h"
 #include "pcb.h"
+#include "shell.h"
+#include "interpreter.h"
 
 #define true 1
 #define false 0
@@ -261,7 +263,7 @@ void evict_frame(int frame) {
                 curr_pcb->page_table[i] = -1;
 	    }
 	}
-	curr_pcb->next;
+	curr_pcb = curr_pcb->next;
     }
 }
 

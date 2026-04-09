@@ -9,6 +9,8 @@
 
 static pid fresh_pid = 1;
 
+void handle_page_fault(struct PCB *pcb, int page); 
+
 int pcb_has_next_instruction(struct PCB *pcb) {
     return pcb->pc < pcb->line_count;
 }
