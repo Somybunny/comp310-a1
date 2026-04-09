@@ -17,7 +17,7 @@ struct PCB {
     struct PCB *next;
 
     size_t line_loaded;  // keep track where in file
-    int page_table[FRAME_STORE_SIZE/FRAME_SIZE]; // page table
+    int page_table[1000]; // page table
 };
 
 

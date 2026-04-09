@@ -76,6 +76,7 @@ struct PCB *create_process_from_FILE(FILE *script) {
     pcb->pc = 0;
     pcb->line_count = 0;
     pcb->line_base = 0;
+    pcb->line_loaded = 0;
     char linebuf[MAX_USER_INPUT];
     size_t lines_loaded = 0;
 
@@ -85,7 +86,7 @@ struct PCB *create_process_from_FILE(FILE *script) {
     }
 
     // loop for 2 pages or until no lines
-    while (!feof(script) || pcb->line_loaded < PAGE_SIZE * FRAME_SIZE) {
+    while (!feof(script) && pcb->line_loaded < PAGE_SIZE * FRAME_SIZE) {
         memset(linebuf, 0, sizeof(linebuf));
         fgets(linebuf, MAX_USER_INPUT, script);
 
