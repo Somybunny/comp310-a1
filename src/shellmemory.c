@@ -4,9 +4,15 @@
 #include <assert.h>
 #include "shellmemory.h"
 
-
 #define true 1
 #define false 0
+
+// LRU time 
+int timestamp = 0;
+
+void update_timestamp() {
+    timestamp++;
+}
 
 
 // Helper functions
@@ -171,3 +177,17 @@ int find_free_frame() {
 
     return -1;
 }
+
+void print_victim(int frame) {
+    printf("Victim page contents:\n");
+
+    for (int i = 0; i < FRAME_SIZE; i++) {
+        int idx = frame * FRAME_SIZE + i;
+
+        if (frame_store[idx].line)
+            printf("%s", frame_store[idx].line);
+    }
+
+    printf("End of victim page contents.\n");
+}
+
