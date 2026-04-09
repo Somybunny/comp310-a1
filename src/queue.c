@@ -10,7 +10,7 @@ struct queue {
 };
 
 struct PCB *get_head(struct queue *q) {
-    return head;
+    return q->head;
 }
 
 struct PCB *get_next(struct PCB *pcb) {

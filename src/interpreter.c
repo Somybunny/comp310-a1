@@ -569,8 +569,6 @@ int my_exec(char *args[], int args_size, bool MT) {
             pthread_mutex_unlock(&q_mutex);
         }
         else{
-	    pcb_nb++;
-	    all_pcbs[n] = pcb;
             policy->enqueue(q, pcb);
         }
         

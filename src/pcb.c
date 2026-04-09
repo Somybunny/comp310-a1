@@ -83,7 +83,7 @@ struct PCB *create_process_from_FILE(FILE *script) {
     }
 
     // loop for 2 pages or until no lines
-    while (!feof(script) || line_loaded < PAGE_SIZE * FRAME_SIZE) {
+    while (!feof(script) || pcb->line_loaded < PAGE_SIZE * FRAME_SIZE) {
         memset(linebuf, 0, sizeof(linebuf));
         fgets(linebuf, MAX_USER_INPUT, script);
 
@@ -127,7 +127,7 @@ void free_pcb(struct PCB *pcb) {
 
 // page fault helper
 void load_page_into_frame(struct PCB *pcb, int page, int frame) {
-    FILE *f = fopen(pcb->filename, "rt");
+    FILE *f = fopen(pcb->name, "rt");
 
     char linebuf[MAX_USER_INPUT];
 
@@ -172,7 +172,7 @@ void evict_frame(int frame) {
     while (curr_pcb != NULL) {
 	for (int i = 0; i < FRAME_STORE_SIZE / FRAME_SIZE; i++) {
             if (curr_pcb->page_table[i] == frame) {
-                p->page_table[j] = -1;
+                curr_pcb->page_table[i] = -1;
 	    }
 	}
 	curr_pcb->next;

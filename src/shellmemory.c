@@ -10,10 +10,15 @@
 
 // LRU bookeeping
 int LRU_clock = 0;
-int frame_LRU_log[FRAME_STORE_SIZE / FRAME_SIZE] = INT_MAX;
+int frame_LRU_log[FRAME_STORE_SIZE / FRAME_SIZE];
+
+// Initialize frame_LRU_log to INT_MAX
+for (int i = 0; i < FRAME_STORE_SIZE / FRAME_SIZE; i++) {
+    frame_LRU_log[i] = INT_MAX;
+}
 
 void update_LRU_clock() {
-    timestamp++;
+    LRU_clock++;
 }
 
 int pick_victim_frame() {
