@@ -9,6 +9,17 @@ struct queue {
     struct PCB *head;
 };
 
+struct PCB *get_head(struct queue *q) {
+    return head;
+}
+
+struct PCB *get_next(struct PCB *pcb) {
+   if (pcb->next == NULL) {
+       return NULL;
+   } 
+   return pcb->next;
+}
+
 struct queue *alloc_queue() {
     struct queue *q = malloc(sizeof(struct queue));
     q->head = NULL;

@@ -432,6 +432,9 @@ void runSchedule(struct queue *q, const struct schedule_policy *policy) {
 struct PCB *run_pcb_to_completion(struct PCB *pcb) {
     while (pcb_has_next_instruction(pcb)) {
         size_t instr = pcb_next_instruction(pcb);
+	if (instr == -1) {
+	    return pcb;
+	}
         parseInput(get_line(instr));
     }
     free_pcb(pcb);
@@ -442,7 +445,11 @@ struct PCB *run_pcb_to_completion(struct PCB *pcb) {
 struct PCB *run_pcb_for_n_steps(struct PCB *pcb, size_t n) {
     debug("run n steps: n is %ld\n", n);
     for (; n && pcb_has_next_instruction(pcb); --n) {
-        parseInput(get_line(pcb_next_instruction(pcb)));
+	size_t instr = pcb_next_instruction(pcb);
+        if (instr == -1) {
+	    return pcb;
+	}
+        parseInput(get_line(instr));
     }
     debug("run n steps: looped to %ld\n", n);
     // The loop runs until either we've done n steps or the pcb is out of
@@ -461,7 +468,9 @@ static int background = false;
 static struct queue *q = NULL;
 static const struct schedule_policy *policy = NULL;
 
-
+struct PCB *get_queue_head() {
+    return get_head(q);
+}
 
 void *scheduler_worker(void *arg) {
     // what the thread will do until it dies
@@ -560,6 +569,8 @@ int my_exec(char *args[], int args_size, bool MT) {
             pthread_mutex_unlock(&q_mutex);
         }
         else{
+	    pcb_nb++;
+	    all_pcbs[n] = pcb;
             policy->enqueue(q, pcb);
         }
         
@@ -654,3 +665,4 @@ int run(char *args[], int arg_size) {
     free(adj_args);
     return 0;
 }
+

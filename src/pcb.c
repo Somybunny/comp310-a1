@@ -4,6 +4,8 @@
 #include "shell.h" // MAX_USER_INPUT
 #include "shellmemory.h"
 #include "pcb.h"
+#include "interpreter.h"
+#include "queue.h"
 
 static pid fresh_pid = 1;
 
@@ -141,6 +143,10 @@ void load_page_into_frame(struct PCB *pcb, int page, int frame) {
         if (fgets(linebuf, MAX_USER_INPUT, f)) {
             int idx = frame * FRAME_SIZE + i;
 
+            // Update LRU clock & log
+	    update_LRU_clock();
+	    touch_frame(frame);
+
             frame_store[idx].line = strdup(linebuf);
             frame_store[idx].allocated = 1;
         }
@@ -154,16 +160,23 @@ void evict_frame(int frame) {
     for (int i = 0; i < FRAME_SIZE; i++) {
         int idx = frame * FRAME_SIZE + i;
 
+	update_LRU_clock();
+	touch_frame(frame);
         free(frame_store[idx].line);
         frame_store[idx].line = NULL;
         frame_store[idx].allocated = 0;
     }
 
     // CRITICAL: update ALL PCBs
-    for each PCB p:
-        for each page:
-            if (p->page_table[page] == frame)
-                p->page_table[page] = -1;
+    struct PCB *curr_pcb = get_queue_head();
+    while (curr_pcb != NULL) {
+	for (int i = 0; i < FRAME_STORE_SIZE / FRAME_SIZE; i++) {
+            if (curr_pcb->page_table[i] == frame) {
+                p->page_table[j] = -1;
+	    }
+	}
+	curr_pcb->next;
+    }
 }
 
 void print_victim(int frame) {

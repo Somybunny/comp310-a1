@@ -4,6 +4,8 @@ struct queue;
 
 #include "schedule_policy.h"
 
+struct PCB *get_head(struct queue *q);
+struct PCB *get_next(struct PCB *pcb);
 
 struct queue *alloc_queue();
 void free_queue(struct queue *q);

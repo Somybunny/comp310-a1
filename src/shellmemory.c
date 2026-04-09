@@ -16,7 +16,7 @@ void update_LRU_clock() {
     timestamp++;
 }
 
-int pick_victime_frame() {
+int pick_victim_frame() {
     int index = 0;
     int least = INT_MAX;
     for (int i = 0; i < FRAME_STORE_SIZE / FRAME_SIZE; i++) {
@@ -26,6 +26,10 @@ int pick_victime_frame() {
 	}	
     } 
     return index;
+}
+
+void touch_frame(int idx) {
+    frame_LRU_log[idx] = LRU_clock;
 }
 
 
@@ -80,19 +84,26 @@ size_t allocate_line(const char *line) {
     }
     size_t index = next_free_line++;
     assert(!frame_store[index].allocated);
-
+    
+    update_LRU_clock();
+    touch_frame(index / FRAME_SIZE);
+    
     frame_store[index].allocated = true;
     frame_store[index].line = strdup(line);
     return index;
 }
 
 void free_line(size_t index) {
+    update_LRU_clock();
+    touch_frame(index / FRAME_SIZE);
     free(frame_store[index].line);
     frame_store[index].allocated = false;
     frame_store[index].line = NULL;
 }
 
 const char *get_line(size_t index) {
+    update_LRU_clock();
+    touch_frame(index / FRAME_SIZE);
     assert(frame_store[index].allocated);
     return frame_store[index].line;
 }
