@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 #include <stdio.h>
 #include <assert.h>
 #include "shellmemory.h"
@@ -7,11 +8,24 @@
 #define true 1
 #define false 0
 
-// LRU time 
-int timestamp = 0;
+// LRU bookeeping
+int LRU_clock = 0;
+int frame_LRU_log[FRAME_STORE_SIZE / FRAME_SIZE] = INT_MAX;
 
-void update_timestamp() {
+void update_LRU_clock() {
     timestamp++;
+}
+
+int pick_victime_frame() {
+    int index = 0;
+    int least = INT_MAX;
+    for (int i = 0; i < FRAME_STORE_SIZE / FRAME_SIZE; i++) {
+        if (frame_LRU_log[i] < least) {
+	    least = frame_LRU_log[i];
+	    index = i;
+	}	
+    } 
+    return index;
 }
 
 
