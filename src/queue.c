@@ -4,6 +4,7 @@
 #include <string.h>
 #include "pcb.h"
 #include "queue.h"
+#include "shellmemory.h"
 
 struct queue {
     struct PCB *head;

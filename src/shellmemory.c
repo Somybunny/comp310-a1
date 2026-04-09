@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include "shellmemory.h"
+#include "pcb.h"
 
 #define true 1
 #define false 0
@@ -210,6 +211,60 @@ int find_free_frame() {
     return -1;
 }
 
+// page fault helper
+void load_page_into_frame(struct PCB *pcb, int page, int frame) {
+    FILE *f = fopen(pcb->name, "rt");
+
+    char linebuf[MAX_USER_INPUT];
+
+    int start = pcb->line_loaded;
+
+    // skip lines
+    for (int i = 0; i < start; i++) {
+        fgets(linebuf, MAX_USER_INPUT, f);
+    }
+
+    // load 3 lines
+    for (int i = 0; i < FRAME_SIZE; i++) {
+        if (fgets(linebuf, MAX_USER_INPUT, f)) {
+            int idx = frame * FRAME_SIZE + i;
+
+            // Update LRU clock & log
+	    update_LRU_clock();
+	    touch_frame(frame);
+
+            frame_store[idx].line = strdup(linebuf);
+            frame_store[idx].allocated = 1;
+        }
+    }
+
+    fclose(f);
+}
+
+
+void evict_frame(int frame) {
+    for (int i = 0; i < FRAME_SIZE; i++) {
+        int idx = frame * FRAME_SIZE + i;
+
+	update_LRU_clock();
+	touch_frame(frame);
+        free(frame_store[idx].line);
+        frame_store[idx].line = NULL;
+        frame_store[idx].allocated = 0;
+    }
+
+    // CRITICAL: update ALL PCBs
+    struct PCB *curr_pcb = get_queue_head();
+    while (curr_pcb != NULL) {
+	for (int i = 0; i < FRAME_STORE_SIZE / FRAME_SIZE; i++) {
+            if (curr_pcb->page_table[i] == frame) {
+                curr_pcb->page_table[i] = -1;
+	    }
+	}
+	curr_pcb->next;
+    }
+}
+
 void print_victim(int frame) {
     printf("Victim page contents:\n");
 
@@ -222,4 +277,5 @@ void print_victim(int frame) {
 
     printf("End of victim page contents.\n");
 }
+
 
