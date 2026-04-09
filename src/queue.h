@@ -9,7 +9,7 @@ struct queue *alloc_queue();
 void free_queue(struct queue *q);
 
 
-int program_already_scheduled(struct queue *q, char *name);
+struct PCB *program_already_scheduled(struct queue *q, char *name);
 
 
 void enqueue_ignoring_priority(struct queue *q, struct PCB *pcb);

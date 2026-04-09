@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <stdio.h> 
 #define PAGE_SIZE 2
+#define PAGE_FAULT_SIGNAL ((size_t)-1)
 
 typedef size_t pid;
 
@@ -15,7 +16,7 @@ struct PCB {
     struct PCB *next;
 
     size_t line_loaded;  // keep track where in file
-    int *page_table[FRAME_STORE_SIZE/FRAME_SIZE]; // page table
+    int page_table[FRAME_STORE_SIZE/FRAME_SIZE]; // page table
 };
 
 
