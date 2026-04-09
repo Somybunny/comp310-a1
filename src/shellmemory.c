@@ -13,8 +13,10 @@ int LRU_clock = 0;
 int frame_LRU_log[FRAME_STORE_SIZE / FRAME_SIZE];
 
 // Initialize frame_LRU_log to INT_MAX
-for (int i = 0; i < FRAME_STORE_SIZE / FRAME_SIZE; i++) {
-    frame_LRU_log[i] = INT_MAX;
+void init_frame_log() {
+    for (int i = 0; i < FRAME_STORE_SIZE / FRAME_SIZE; i++) {
+        frame_LRU_log[i] = INT_MAX;
+    }
 }
 
 void update_LRU_clock() {

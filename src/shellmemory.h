@@ -2,6 +2,7 @@
 #define MEM_SIZE 1000
 #define FRAME_SIZE 3
 
+void init_frame_log();
 void update_LRU_clock();
 int pick_victim_frame();
 void touch_frame(int idx);

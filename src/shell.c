@@ -25,6 +25,7 @@ int main(int argc, char *argv[]) {
     }
 
     //init shell memory
+    init_frame_log();
     var_init();
     while (1) {
         if (!batch_mode) {
