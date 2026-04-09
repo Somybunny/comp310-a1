@@ -423,6 +423,7 @@ void runSchedule(struct queue *q, const struct schedule_policy *policy) {
     struct PCB *next_pcb = policy->dequeue(q);
     while (next_pcb) {
         next_pcb = policy->run_pcb(next_pcb);
+	// Check if page fault
         if (next_pcb) policy->enqueue(q, next_pcb);
         next_pcb = policy->dequeue(q);
     }
@@ -432,6 +433,7 @@ void runSchedule(struct queue *q, const struct schedule_policy *policy) {
 struct PCB *run_pcb_to_completion(struct PCB *pcb) {
     while (pcb_has_next_instruction(pcb)) {
         size_t instr = pcb_next_instruction(pcb);
+	// Check if page fault
 	if (instr == -1) {
 	    return pcb;
 	}
@@ -446,6 +448,7 @@ struct PCB *run_pcb_for_n_steps(struct PCB *pcb, size_t n) {
     debug("run n steps: n is %ld\n", n);
     for (; n && pcb_has_next_instruction(pcb); --n) {
 	size_t instr = pcb_next_instruction(pcb);
+	// Check if page fault
         if (instr == -1) {
 	    return pcb;
 	}
@@ -468,6 +471,7 @@ static int background = false;
 static struct queue *q = NULL;
 static const struct schedule_policy *policy = NULL;
 
+// Helper to evict
 struct PCB *get_queue_head() {
     return get_head(q);
 }
@@ -549,6 +553,7 @@ int my_exec(char *args[], int args_size, bool MT) {
 
 
     for (int n = 0; n < args_size; ++n) {
+	// Check if same program
 	struct PCB *pcb_already = program_already_scheduled(q, args[n]);
 	struct PCB *pcb = NULL;
 	if (pcb_already) {

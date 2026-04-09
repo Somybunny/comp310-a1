@@ -19,15 +19,14 @@ size_t pcb_next_instruction(struct PCB *pcb) {
     int page = pcb->pc / FRAME_SIZE;
     int offset = pcb->pc % FRAME_SIZE;
 
-    // page fault
+    // Check if page fault
     if (pcb->page_table[page] == -1) {
         handle_page_fault(pcb, page);
 	return PAGE_FAULT_SIGNAL;
     }
 
-    // set to next inst
+    // Set to next
     int frame = pcb->page_table[page];
-
     size_t index = frame * FRAME_SIZE + offset;
 
     pcb->pc++;
@@ -42,7 +41,7 @@ struct PCB *create_process_already(struct PCB *pcb) {
 	return NULL;
     }
 
-    // copy data
+    // Copy data
     struct PCB *new_pcb = malloc(sizeof(struct PCB));
     new_pcb->pid = fresh_pid++;
     new_pcb->name = pcb->name;
@@ -80,12 +79,12 @@ struct PCB *create_process_from_FILE(FILE *script) {
     char linebuf[MAX_USER_INPUT];
     size_t lines_loaded = 0;
 
-    // initialize page table
+    // Initialize page table
     for (int i = 0; i < (100); i++) {
         pcb->page_table[i] = -1;
     }
 
-    // loop for 2 pages or until no lines
+    // Loop for 2 pages or until EOF
     while (!feof(script) && lines_loaded < PAGE_SIZE * FRAME_SIZE) {
         memset(linebuf, 0, sizeof(linebuf));
         fgets(linebuf, MAX_USER_INPUT, script);
@@ -102,20 +101,24 @@ struct PCB *create_process_from_FILE(FILE *script) {
         }
 
         pcb->line_count++;
+
+	// Update page table
 	int page = lines_loaded++ / FRAME_SIZE;
 	pcb->page_table[page] = index / FRAME_SIZE;
     }
 
-    // count remaining lines
+    // Count remaining lines
     while (fgets(linebuf, MAX_USER_INPUT, script)) {
         pcb->line_count++;
     }
 
     fclose(script);
+
+    // Update pcb 
     pcb->duration = pcb->line_count;
     pcb->line_loaded = lines_loaded;
-    align_to_next_page();
 
+    align_to_next_page();
     return pcb;
 }
 
@@ -129,26 +132,19 @@ void free_pcb(struct PCB *pcb) {
     free(pcb);
 }
 
-// page fault handler
 void handle_page_fault(struct PCB *pcb, int page) {
     printf("Page fault!\n");
-    // check if free frame
+    // Free frame
     int frame = find_free_frame();
 
-    // find evict frame
+    // Evict frame
     if (frame == -1) {
         frame = pick_victim_frame();
-
-	// print victim frame content
         print_victim(frame);
-
-	// update all page tables
         evict_frame(frame);
     }
 
-    // load the line in frame
+    // Update page table & frame
     load_page_into_frame(pcb, page, frame);
-    
-    // put the frame in page table
     pcb->page_table[page] = frame;
 }
